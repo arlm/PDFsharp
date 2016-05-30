@@ -1,6 +1,6 @@
 ; PDFsharp string resources (German)
 ;
-; Must be saved as Unicode (UTF-8 with signature) to force resgen.exe to process German umlauts.
+; Must be saved as Unicode (UTF-8 with signature) to force resgen.exe to eat german umlauts.
 
 CultureID = Deutsch (de)
 
