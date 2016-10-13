@@ -160,6 +160,8 @@ namespace PdfSharp.Pdf.Advanced
 
                     if (PdfStandardSecurityHandler.CanHandle(encrypt))
                         _securityHandler = new PdfStandardSecurityHandler(encrypt);
+                    else if (PdfAESV2SecurityHandler.CanHandle(encrypt))
+                        _securityHandler = new PdfAESV2SecurityHandler(encrypt);
                 }
 
                 return _securityHandler;
