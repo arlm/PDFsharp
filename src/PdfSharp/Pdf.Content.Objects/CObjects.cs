@@ -421,7 +421,10 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
 
         IEnumerator<CObject> IEnumerable<CObject>.GetEnumerator()
         {
-            throw new NotImplementedException();
+            foreach(var item in _items)
+            {
+                yield return item;
+            }
         }
 
         #endregion
