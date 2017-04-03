@@ -269,8 +269,7 @@ namespace PdfSharp.Pdf.Content
             char ch = _currChar;
             if (ch == '+' || ch == '-')
             {
-                if (ch == '-')
-                    negative = true;
+                negative |= ch == '-';
                 _token.Append(ch);
                 ch = ScanNextChar();
             }
