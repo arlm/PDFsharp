@@ -27,6 +27,7 @@
 // DEALINGS IN THE SOFTWARE.
 #endregion
 
+using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 
@@ -99,7 +100,17 @@ namespace PdfSharp.Pdf.Content.Objects
         static public COperator OperatorFromName(string name)
         {
             COperator op = null;
-            OpCode opcode = StringToOpCode[name];
+            OpCode opcode = null;
+
+            if (StringToOpCode.ContainsKey(name))
+            {
+                opcode = StringToOpCode[name];
+            }
+            else
+            {
+                throw new ArgumentException($"Operator {name} not found on PDFSharp dictionary", nameof(name));
+            }
+
             if (opcode != null)
             {
                 op = new COperator(opcode);
@@ -108,6 +119,7 @@ namespace PdfSharp.Pdf.Content.Objects
             {
                 Debug.Assert(false, "Unknown operator in PDF content stream.");
             }
+
             return op;
         }
 
