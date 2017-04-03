@@ -174,7 +174,25 @@ namespace PdfSharp.Pdf.Content
 
             // Look for 'EI'.
             while (_currChar != 'E' || _nextChar != 'I')
+            {
                 ScanNextChar();
+
+                if ((_charIndex + 3) < _content.Length)
+                {
+                    byte thirdChar = _content[_charIndex];
+
+                    if (_currChar == 'E' && _nextChar == 'I' &&
+                        thirdChar != ' ' && thirdChar != '\n' && thirdChar != '\r')
+                    {
+                        ScanNextChar();
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+
 
             // We currently do nothing with inline images.
             return CSymbol.None;
@@ -325,6 +343,7 @@ namespace PdfSharp.Pdf.Content
             ContentReaderDiagnostics.ThrowNumberOutOfIntegerRange(value);
             return CSymbol.Error;
         }
+
         static readonly double[] PowersOf10 = { 1e00, 1e01, 1e02, 1e03, 1e04, 1e05, 1e06, 1e7, 1e08, 1e09, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15 };
 
         /// <summary>
