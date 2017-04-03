@@ -244,7 +244,7 @@ namespace PdfSharp.Fonts.CID
         }
 
         /// <summary>
-        /// Gets or sets the high end of this CIDRange.
+        /// Gets the high end of this CIDRange.
         /// </summary>
         public ushort High
         {
@@ -262,7 +262,7 @@ namespace PdfSharp.Fonts.CID
         }
 
         /// <summary>
-        /// Gets or sets the low end of this CIDRange.
+        /// Gets the low end of this CIDRange.
         /// </summary>
         public ushort Low
         {
@@ -335,6 +335,31 @@ namespace PdfSharp.Fonts.CID
             byte charSecond = unchecked((byte)(character & 0x00FF));
 
             return loFirst <= charFirst && hiFirst >= charFirst && loSecond <= charSecond && hiSecond >= charSecond;
+        }
+
+        /// <summary>
+        /// Determines if the character first byte is contained within this CIDMappingRange.
+        /// </summary>
+        public bool ContainsByte(char character)
+        {
+            if ((character & 0xFF00) > 0)
+            {
+                return this.Contains(character);
+            }
+
+            // Treat range inclusive/inclusive.
+            if (_type == RangeType.Linear)
+            {
+                var lowerLimit = (_low >> 8) <= (character & 0x00FF);
+                var higherLimit = (this._high >> 8) >= (character & 0x00FF);
+                return lowerLimit && higherLimit;
+            }
+
+            byte loFirst = unchecked((byte)(_low >> 8));
+            byte hiFirst = unchecked((byte)(_high >> 8));
+            byte charSecond = unchecked((byte)(character & 0x00FF));
+
+            return loFirst <= charSecond && hiFirst >= charSecond;
         }
 
         /// <summary>

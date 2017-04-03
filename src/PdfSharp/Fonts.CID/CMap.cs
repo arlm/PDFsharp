@@ -30,6 +30,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using PdfSharp.Pdf.Content.Objects;
@@ -40,7 +41,7 @@ namespace PdfSharp.Fonts.CID
 {
     public sealed class CMap : PdfObject, IEnumerable<CIDRange>
     {
-        private Dictionary<CIDRange, char> characterMap = new Dictionary<CIDRange, char>();
+        private Dictionary<CIDRange, string> characterMap = new Dictionary<CIDRange, string>();
         private List<CIDRange> codespace = new List<CIDRange>();
         private Dictionary<CIDRange, string> namedCharacterMap = new Dictionary<CIDRange, string>();
 
@@ -79,7 +80,7 @@ namespace PdfSharp.Fonts.CID
         /// <summary>
         /// Determines if the character is contained within this CIDMappingRange.
         /// </summary>
-        public bool IsValid(char character)
+        public bool Contains(char character)
         {
             foreach (var range in characterMap.Keys)
             {
@@ -89,9 +90,17 @@ namespace PdfSharp.Fonts.CID
                 }
             }
 
-            foreach (var range in codespace)
+            return false;
+        }
+
+        /// <summary>
+        /// Determines if the character first byte is contained within this CIDMappingRange.
+        /// </summary>
+        public bool ContainsByte(char character)
+        {
+            foreach (var range in characterMap.Keys)
             {
-                if (range.Contains(character))
+                if (range.ContainsByte(character))
                 {
                     return true;
                 }
@@ -109,11 +118,46 @@ namespace PdfSharp.Fonts.CID
             {
                 if (range.Key.Contains(character))
                 {
-                    var offset = character - range.Key.Low;
-                    var charValue = range.Value + offset;
-                    byte[] chars = { unchecked((byte)((charValue & 0xFF00) >>8)), unchecked((byte)(charValue & 0xFF)) };
-                    result = new string(Encoding.BigEndianUnicode.GetChars(chars));
+                    if (range.Key.High != range.Key.Low)
+                    {
+                        var offset = unchecked((char)(character - range.Key.Low));
+                        var newValue = range.Value.Remove(range.Value.Length - 1);
+                        var newChar = unchecked((char)(range.Value[range.Value.Length - 1] + offset));
+                        newValue += newChar;
+
+                        var chars = new List<byte>();
+
+                        foreach (var @char in newValue)
+                        {
+                            chars.Add(unchecked((byte)((@char & 0xFF00) >> 8)));
+                            chars.Add(unchecked((byte)(@char & 0xFF)));
+                        }
+
+                        result = new string(Encoding.BigEndianUnicode.GetChars(chars.ToArray()));
+                    }
+                    else
+                    {
+                        var chars = new List<byte>();
+
+                        if (range.Value.Length == 1 && range.Value[0] == 0xFFFD)
+                        {
+                            chars.Add(unchecked((byte)((character & 0xFF00) >> 8)));
+                            chars.Add(unchecked((byte)(character & 0xFF)));
+                        }
+                        else
+                        {
+                            foreach (var @char in range.Value)
+                            {
+                                chars.Add(unchecked((byte)((@char & 0xFF00) >> 8)));
+                                chars.Add(unchecked((byte)(@char & 0xFF)));
+                            }
+                        }
+
+                        result = new string(Encoding.BigEndianUnicode.GetChars(chars.ToArray()));
+                    }
+
                     found = true;
+                    break;
                 }
             }
 
@@ -454,55 +498,38 @@ namespace PdfSharp.Fonts.CID
 
             if (integerValue != null)
             {
-                characterMap.Add(tempRange, Convert.ToChar(integerValue.Value));
+                characterMap.Add(tempRange, integerValue.Value.ToString());
             }
 
             if (hexValue != null)
             {
-                char dstChar;
+                char? dstChar = null;
 
                 if (hexValue?.CStringType != CStringType.HexString)
                 {
                     ContentReaderDiagnostics.ThrowContentReaderException("dstChar should be an Hexadecimal string");
                 }
-                else if (hexValue.Value.Length == 0 || hexValue.Value.Length > 2)
+                else if (hexValue.Value.Length == 0)
                 {
-                    if (hexValue.Value.Length != 0)
-                    {
-                        var dstBuffer = new byte[hexValue.Value.Length];
-
-                        for (int dstIndex = 0; dstIndex < dstBuffer.Length; dstIndex++)
-                        {
-                            dstBuffer[dstIndex] = unchecked((byte)(hexValue.Value[dstIndex] & 0xFF));
-                        }
-
-                        var chars = Encoding.BigEndianUnicode.GetChars(dstBuffer);
-
-                        if (chars.Length == 1)
-                        {
-                            dstChar = chars[0];
-                        }
-                        else
-                        {
-                            dstChar = Convert.ToChar((chars[0] & 0xFF) << 8 | (chars[1] & 0xFF));
-                        }
-                    }
-                    else
-                    {
-                        ContentReaderDiagnostics.ThrowContentReaderException("dstChar should have zero byte length");
-                    }
+                    ContentReaderDiagnostics.ThrowContentReaderException("dstChar should have zero byte length");
                 }
-
-                if (hexValue.Value.Length == 1)
+                else if (hexValue.Value.Length == 1)
                 {
                     dstChar = hexValue.Value[0];
+                    characterMap.Add(tempRange, dstChar.Value.ToString());
                 }
                 else
                 {
-                    dstChar = Convert.ToChar((hexValue.Value[0] & 0xFF) << 8 | (hexValue.Value[1] & 0xFF));
-                }
+                    var dstBuffer = new byte[hexValue.Value.Length];
 
-                characterMap.Add(tempRange, dstChar);
+                    for (int dstIndex = 0; dstIndex < dstBuffer.Length; dstIndex++)
+                    {
+                        dstBuffer[dstIndex] = unchecked((byte)(hexValue.Value[dstIndex] & 0xFF));
+                    }
+
+                    var chars = Encoding.BigEndianUnicode.GetChars(dstBuffer);
+                    characterMap.Add(tempRange, new string(chars));
+                }
             }
 
             if (arrayValue != null)
@@ -529,7 +556,7 @@ namespace PdfSharp.Fonts.CID
 
                     if (integerValue != null)
                     {
-                        characterMap.Add(newRange, Convert.ToChar(integerValue.Value));
+                        characterMap.Add(newRange, Convert.ToChar(integerValue.Value).ToString());
                     }
 
                     if (hexValue != null)
@@ -540,44 +567,27 @@ namespace PdfSharp.Fonts.CID
                         {
                             ContentReaderDiagnostics.ThrowContentReaderException("dstChar should be an Hexadecimal string");
                         }
-                        else if (hexValue.Value.Length == 0 || hexValue.Value.Length > 2)
+                        else if (hexValue.Value.Length == 0)
                         {
-                            if (hexValue.Value.Length != 0)
-                            {
-                                var dstBuffer = new byte[hexValue.Value.Length];
-
-                                for (int dstIndex = 0; dstIndex < dstBuffer.Length; dstIndex++)
-                                {
-                                    dstBuffer[dstIndex] = unchecked((byte)(hexValue.Value[dstIndex] & 0xFF));
-                                }
-
-                                var chars = Encoding.BigEndianUnicode.GetChars(dstBuffer);
-
-                                if (chars.Length == 1)
-                                {
-                                    dstChar = chars[0];
-                                }
-                                else
-                                {
-                                    dstChar = Convert.ToChar((chars[0] & 0xFF) << 8 | (chars[1] & 0xFF));
-                                }
-                            }
-                            else
-                            {
-                                ContentReaderDiagnostics.ThrowContentReaderException("dstChar should have zero byte length");
-                            }
+                            ContentReaderDiagnostics.ThrowContentReaderException("dstChar should have zero byte length");
                         }
-
-                        if (hexValue.Value.Length == 1)
+                        else if (hexValue.Value.Length == 1)
                         {
                             dstChar = hexValue.Value[0];
+                            characterMap.Add(newRange, dstChar.ToString());
                         }
                         else
                         {
-                            dstChar = Convert.ToChar((hexValue.Value[0] & 0xFF) << 8 | (hexValue.Value[1] & 0xFF));
-                        }
+                            var dstBuffer = new byte[hexValue.Value.Length];
 
-                        characterMap.Add(newRange, dstChar);
+                            for (int dstIndex = 0; dstIndex < dstBuffer.Length; dstIndex++)
+                            {
+                                dstBuffer[dstIndex] = unchecked((byte)(hexValue.Value[dstIndex] & 0xFF));
+                            }
+
+                            var chars = Encoding.BigEndianUnicode.GetChars(dstBuffer);
+                            characterMap.Add(newRange, new string(chars));
+                        }
                     }
                 }
             }
