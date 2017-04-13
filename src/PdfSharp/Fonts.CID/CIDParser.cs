@@ -31,7 +31,6 @@ using System.Diagnostics;
 using System.IO;
 using PdfSharp.Internal;
 using PdfSharp.Pdf;
-using PdfSharp.Pdf.Advanced;
 using PdfSharp.Pdf.Content;
 using PdfSharp.Pdf.Content.Objects;
 
@@ -44,11 +43,10 @@ namespace PdfSharp.Fonts.CID
     /// </summary>
     public sealed class CIDParser
     {
-        public CIDParser(PdfPage page)
+        public CIDParser(PdfDictionary dictionary)
         {
-            _page = page;
-            PdfContent content = page.Contents.CreateSingleContent();
-            byte[] bytes = content.Stream.Value;
+            _dictionary = dictionary;
+            byte[] bytes = dictionary.Stream.UnfilteredValue;
             _lexer = new CLexer(bytes);
         }
 
@@ -244,7 +242,7 @@ namespace PdfSharp.Fonts.CID
         }
 
         readonly CSequence _operands = new CSequence();
-        PdfPage _page;
+        PdfDictionary _dictionary;
         readonly CLexer _lexer;
     }
 }

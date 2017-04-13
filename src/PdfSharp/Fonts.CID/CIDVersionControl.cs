@@ -27,7 +27,11 @@
 // DEALINGS IN THE SOFTWARE.
 #endregion
 
+using System;
+using System.Collections.Generic;
+using PdfSharp.Internal;
 using PdfSharp.Pdf;
+using PdfSharp.Pdf.Content.Objects;
 
 namespace PdfSharp.Fonts.CID
 {
@@ -42,7 +46,7 @@ namespace PdfSharp.Fonts.CID
         public CIDVersionControl()
         {
             Elements.SetName(Keys.Registry, "Adobe");
-            Elements.SetName(Keys.Ordering, "Japan1");
+            Elements.SetName(Keys.Ordering, "UCS");
             Elements.SetName(Keys.Supplement, "0");
         }
 
@@ -104,6 +108,250 @@ namespace PdfSharp.Fonts.CID
             /// </summary>
             [KeyInfo(KeyType.Integer | KeyType.Required)]
             public const string Supplement = "/Supplement";
+        }
+
+        internal void ParseStream(CSequence innerContent, ref int index, CIDOperator cmapDictionary)
+        {
+            if (cmapDictionary?.OpCode.OpCodeName == CIDOpCodeName.CIDSystemInfo)
+            {
+                cmapDictionary = innerContent[index++] as CIDOperator;
+                cmapDictionary.Operands.Insert(0, new CName(CMapDictionary.Keys.CIDSystemInfo));
+            }
+
+            if (cmapDictionary?.OpCode.OpCodeName == CIDOpCodeName.Dictionary)
+            {
+                var cmapDictionaryName = (cmapDictionary.Operands[0] as CName)?.Name;
+                var cmapDictionaryString = (cmapDictionary.Operands[1] as CString)?.Value ?? string.Empty;
+
+                if (cmapDictionaryName != CMapDictionary.Keys.CIDSystemInfo)
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("CIDSystemInfo dictionary not found");
+                }
+
+                var isValid = cmapDictionaryString.Contains("/Registry") &&
+                    cmapDictionaryString.Contains("/Ordering") &&
+                    cmapDictionaryString.Contains("/Supplement");
+
+                var formattedItems = cmapDictionaryString
+                    .Substring(2, cmapDictionaryString.Length - 4)
+                    .Replace("(", "[(")
+                    .Replace(")", ")]")
+                    .Replace("<", "[<")
+                    .Replace(">", ">]");
+
+                var items = formattedItems.Split(new char[] { ' ', '\n', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (items.Length != 6)
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("Invalid CIDSystemInfo dictionary length");
+                }
+
+                GetCIDSystemInfoItems(items[0], items[1]);
+                GetCIDSystemInfoItems(items[2], items[3]);
+                GetCIDSystemInfoItems(items[4], items[5]);
+            }
+            else if (cmapDictionary?.OpCode.OpCodeName == CIDOpCodeName.dict)
+            {
+                var cmapDictionaryName = (cmapDictionary.Operands[0] as CName)?.Name;
+                var cmapDictionaryCount = (cmapDictionary.Operands[1] as CInteger)?.Value ?? 0;
+
+                if (cmapDictionaryName != "/CIDSystemInfo")
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("CIDSystemInfo dictionary not found");
+                }
+
+                if (cmapDictionaryCount != 3)
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("Invalid CIDSystemInfo dictionary");
+                }
+
+                var cOperator = innerContent[index++] as CIDOperator;
+                if (cOperator?.OpCode.OpCodeName == CIDOpCodeName.dup)
+                {
+                    cOperator = innerContent[index++] as CIDOperator;
+                }
+
+                if (cOperator?.OpCode.OpCodeName != CIDOpCodeName.begin)
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("begin not found after CIDSystemInfo dictionary");
+                }
+
+                var def1 = innerContent[index++] as CIDOperator;
+                var item1 = GetDictionaryEntry(def1);
+
+                var def2 = innerContent[index++] as CIDOperator;
+                var item2 = GetDictionaryEntry(def2);
+
+                var def3 = innerContent[index++] as CIDOperator;
+                var item3 = GetDictionaryEntry(def3);
+
+                GetCIDSystemInfoItems(item1.Key, item1.Value);
+                GetCIDSystemInfoItems(item2.Key, item2.Value);
+                GetCIDSystemInfoItems(item3.Key, item3.Value);
+
+                if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.end)
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("end not found after CIDSystemInfo dictionary definition");
+                }
+            }
+            else
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("CIDSystemInfo dictionary not found");
+            }
+        }
+
+        internal void GetCIDSystemInfoItems(string key, PdfItem value)
+        {
+            switch (key)
+            {
+                case Keys.Registry:
+                    if (Elements.ContainsKey(key))
+                    {
+                        ContentReaderDiagnostics.ThrowContentReaderException("Duplicated element on CIDSystemInfo dictionary");
+                    }
+                    else if (!(value is PdfString))
+                    {
+                        ContentReaderDiagnostics.ThrowContentReaderException("/Registry CIDSystemInfo element should be of PdfString type");
+                    }
+
+                    break;
+
+                case Keys.Ordering:
+                    if (Elements.ContainsKey(key))
+                    {
+                        ContentReaderDiagnostics.ThrowContentReaderException("Duplicated element on CIDSystemInfo dictionary");
+                    }
+                    else if (!(value is PdfString))
+                    {
+                        ContentReaderDiagnostics.ThrowContentReaderException("/Ordering CIDSystemInfo element should be of PdfString type");
+                    }
+
+                    break;
+
+                case Keys.Supplement:
+                    if (Elements.ContainsKey(key))
+                    {
+                        ContentReaderDiagnostics.ThrowContentReaderException("Duplicated element on CIDSystemInfo dictionary");
+                    }
+                    else if (!(value is PdfInteger))
+                    {
+                        ContentReaderDiagnostics.ThrowContentReaderException("/Supplement CIDSystemInfo element should be of PdfInteger type");
+                    }
+
+                    break;
+
+                default:
+                    ContentReaderDiagnostics.ThrowContentReaderException("Invalid CIDSystemInfo dictionary");
+                    break;
+            }
+
+            Elements.Add(key, value);
+        }
+
+        internal void GetCIDSystemInfoItems(string key, string value)
+        {
+            switch (key)
+            {
+                case Keys.Registry:
+                    {
+                        var pdfString = new PdfString(value.Substring(1, value.Length - 2));
+
+                        if (Elements.ContainsKey(key))
+                        {
+                            Elements[key] = pdfString;
+                        }
+                        else
+                        {
+                            Elements.Add(key, pdfString);
+                        }
+                    }
+
+                    break;
+
+                case Keys.Ordering:
+                    {
+                        var pdfString = new PdfString(value.Substring(1, value.Length - 2));
+
+                        if (Elements.ContainsKey(key))
+                        {
+                            Elements[key] = pdfString;
+                        }
+                        else
+                        {
+                            Elements.Add(key, pdfString);
+                        }
+                    }
+
+                    break;
+
+                case Keys.Supplement:
+                    {
+                        int intValue;
+
+                        if (int.TryParse(value, out intValue))
+                        {
+                            var pdfInteger = new PdfInteger(intValue);
+
+                            if (Elements.ContainsKey(key))
+                            {
+                                Elements[key] = pdfInteger;
+                            }
+                            else
+                            {
+                                Elements.Add(key, pdfInteger);
+                            }
+                        }
+                        else
+                        {
+                            ContentReaderDiagnostics.ThrowContentReaderException("Invalid /Supplement element on CIDSystemInfo dictionary");
+                        }
+                    }
+
+                    break;
+
+                default:
+                    ContentReaderDiagnostics.ThrowContentReaderException("Invalid CIDSystemInfo dictionary");
+                    break;
+            }
+        }
+
+        internal KeyValuePair<string, PdfItem> GetDictionaryEntry(CIDOperator def)
+        {
+            if (def?.OpCode.OpCodeName == CIDOpCodeName.def)
+            {
+                if (def.Operands.Count == 0)
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("definitions should not be empty");
+                }
+
+                var key = (def.Operands[0] as CName)?.Name;
+                var stringValue = (def.Operands[1] as CString)?.Value;
+                var nameValue = (def.Operands[1] as CName)?.Name;
+                var integerValue = (def.Operands[1] as CInteger)?.Value;
+
+                if (string.IsNullOrEmpty(key))
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("definition key should not be empty");
+                }
+
+                if (!string.IsNullOrEmpty(stringValue))
+                {
+                    return new KeyValuePair<string, PdfItem>(key, new PdfString(stringValue));
+                }
+
+                if (!string.IsNullOrEmpty(nameValue))
+                {
+                    return new KeyValuePair<string, PdfItem>(key, new PdfName(nameValue));
+                }
+
+                if (integerValue.HasValue)
+                {
+                    return new KeyValuePair<string, PdfItem>(key, new PdfInteger(integerValue.Value));
+                }
+            }
+
+            ContentReaderDiagnostics.ThrowContentReaderException("definition not found");
+            return default(KeyValuePair<string, PdfItem>);
         }
     }
 }

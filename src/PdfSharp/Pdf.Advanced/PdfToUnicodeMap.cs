@@ -33,33 +33,65 @@ using System.Text;
 using System.IO;
 using PdfSharp.Fonts;
 using PdfSharp.Pdf.Filters;
+using PdfSharp.Fonts.CID;
+using PdfSharp.Internal;
+using PdfSharp.Pdf.Content.Objects;
 
 namespace PdfSharp.Pdf.Advanced
 {
     /// <summary>
     /// Represents a ToUnicode map for composite font.
     /// </summary>
-    internal sealed class PdfToUnicodeMap : PdfDictionary
+    public sealed class PdfToUnicodeMap : PdfDictionary
     {
         public PdfToUnicodeMap(PdfDocument document)
             : base(document)
-        { }
+        {
+            _versionControlInfo = new CIDVersionControl();
+        }
 
-        public PdfToUnicodeMap(PdfDocument document, CMapInfo cmapInfo)
+        internal PdfToUnicodeMap(PdfDocument document, CMapInfo cmapInfo)
             : base(document)
         {
             _cmapInfo = cmapInfo;
+            _versionControlInfo = new CIDVersionControl();
         }
+
+        internal PdfToUnicodeMap(PdfDictionary dictionary)
+            : base(dictionary)
+        {
+            _versionControlInfo = new CIDVersionControl();
+        }
+
+        /// <summary>
+        /// Gets or sets the CID Versíon Control info.
+        /// </summar
+        public CIDVersionControl CIDVersíonControl
+        {
+            get { return _versionControlInfo; }
+            set { _versionControlInfo = value; }
+        }
+        CIDVersionControl _versionControlInfo;
 
         /// <summary>
         /// Gets or sets the CMap info.
         /// </summary>
-        public CMapInfo CMapInfo
+        internal CMapInfo CMapInfo
         {
             get { return _cmapInfo; }
             set { _cmapInfo = value; }
         }
         CMapInfo _cmapInfo;
+
+        /// <summary>
+        /// Gets or sets the CMap table.
+        /// </summary>
+        public CMap CMapTable
+        {
+            get { return _cmapTable; }
+            set { _cmapTable = value; }
+        }
+        CMap _cmapTable;
 
         /// <summary>
         /// Creates the ToUnicode map from the CMapInfo.
@@ -73,7 +105,7 @@ namespace PdfSharp.Pdf.Advanced
               "/CIDInit /ProcSet findresource begin\n" +
               "12 dict begin\n" +
               "begincmap\n" +
-              "/CIDSystemInfo << /Registry (Adobe)/Ordering (UCS)/Supplement 0>> def\n" +
+              "/CIDSystemInfo " + _versionControlInfo + " def\n" +
               "/CMapName /Adobe-Identity-UCS def /CMapType 2 def\n";
             string suffix = "endcmap CMapName currentdict /CMap defineresource pop end end";
 
@@ -143,6 +175,343 @@ namespace PdfSharp.Pdf.Advanced
         public sealed class Keys : PdfStream.Keys
         {
             // No new keys.
+        }
+
+        private void ParseStream()
+        {
+            _cmapTable = new CMap(this);
+
+            CIDParser parser;
+
+            if (Stream != null)
+            {
+                PdfItem filter = Elements["/Filter"];
+
+                if (filter != null)
+                {
+                    parser = new CIDParser(Stream.UnfilteredValue);
+                }
+                else
+                {
+                    parser = new CIDParser(Stream.Value);
+                }
+            }
+            else
+            {
+                return;
+            }
+
+            var innerContent = parser.ReadContent();
+            var index = 0;
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.findresource)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("findresource operation not found");
+            }
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.begin)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("begin not found after findresource operation");
+            }
+
+            var dict = innerContent[index++] as CIDOperator;
+            if (dict?.OpCode.OpCodeName != CIDOpCodeName.dict)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("CMap dictionary not found");
+            }
+
+            var dictCount = (dict.Operands[0] as CInteger)?.Value ?? 0;
+
+            if (dictCount == 0)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("CMap dictionary should not be empty");
+            }
+
+            if (dictCount < 7)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("CMap dictionary does not have the minimum requirements");
+            }
+
+            dictCount -= 5;
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.begin)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("begin not found after dict element");
+            }
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.begincmap)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("begincmap not found");
+            }
+
+            CIDOpCodeName? opCode = null;
+
+            while (opCode != CIDOpCodeName.endcmap && index < innerContent.Count)
+            {
+                var element = innerContent[index++] as CIDOperator;
+                opCode = element?.OpCode.OpCodeName;
+
+#if DEBUG
+                if ((index % 50) == 0)
+                {
+                    Logger.Log("opCode {0}/{1}", index, innerContent.Count);
+                }
+#endif
+
+                if (!opCode.HasValue)
+                {
+                    continue;
+                }
+
+                switch (opCode.Value)
+                {
+                    case CIDOpCodeName.CIDSystemInfo:
+                    case CIDOpCodeName.Dictionary:
+                    case CIDOpCodeName.dict:
+                        {
+                            _versionControlInfo.ParseStream(innerContent, ref index, element);
+
+                            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.def)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("def not found after CIDSystemInfo dictionary");
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.def:
+                        break;
+
+                    case CIDOpCodeName.begincodespacerange:
+                        {
+                            var range = (element.Operands[0] as CInteger)?.Value ?? 0;
+
+                            element = innerContent[index++] as CIDOperator;
+                            opCode = element?.OpCode.OpCodeName;
+
+                            if (!opCode.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (opCode.Value != CIDOpCodeName.endcodespacerange)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("begincodespacerange without a matchingendcodespacerange");
+                            }
+
+                            if (range > 0)
+                            {
+                                _cmapTable.ImportCodeSpaceRange(element.Operands, range);
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.beginbfchar:
+                        {
+                            var range = (element.Operands[0] as CInteger)?.Value ?? 0;
+
+                            element = innerContent[index++] as CIDOperator;
+                            opCode = element?.OpCode.OpCodeName;
+
+                            if (!opCode.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (opCode.Value != CIDOpCodeName.endbfchar)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("beginbfchar without a endbfchar");
+                            }
+
+                            if (range > 0)
+                            {
+                                _cmapTable.ImportCharacterMap(element.Operands, range);
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.beginbfrange:
+                        {
+                            var range = (element.Operands[0] as CInteger)?.Value ?? 0;
+
+                            element = innerContent[index++] as CIDOperator;
+                            opCode = element?.OpCode.OpCodeName;
+
+                            if (!opCode.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (opCode.Value != CIDOpCodeName.endbfrange)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("beginbfrange without a endbfrange");
+                            }
+
+                            if (range > 0)
+                            {
+                                _cmapTable.ImportCharacterMapRange(element.Operands, range);
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.begincidchar:
+                        {
+                            var range = (element.Operands[0] as CInteger)?.Value ?? 0;
+
+                            element = innerContent[index++] as CIDOperator;
+                            opCode = element?.OpCode.OpCodeName;
+
+                            if (!opCode.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (opCode.Value != CIDOpCodeName.endcidchar)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("begincidchar without a endcidchar");
+                            }
+
+                            if (range > 0)
+                            {
+                                _cmapTable.ImportValidCharacters(element.Operands, range);
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.begincidrange:
+                        {
+                            var range = (element.Operands[0] as CInteger)?.Value ?? 0;
+
+                            element = innerContent[index++] as CIDOperator;
+                            opCode = element?.OpCode.OpCodeName;
+
+                            if (!opCode.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (opCode.Value != CIDOpCodeName.endcidrange)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("begincidrange without a endcidrange");
+                            }
+
+                            if (range > 0)
+                            {
+                                _cmapTable.ImportValidCharactersRange(element.Operands, range);
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.beginnotdefchar:
+                        {
+                            var range = (element.Operands[0] as CInteger)?.Value ?? 0;
+
+                            element = innerContent[index++] as CIDOperator;
+                            opCode = element?.OpCode.OpCodeName;
+
+                            if (!opCode.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (opCode.Value != CIDOpCodeName.endnotdefchar)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("beginnotdefchar without a endnotdefchar");
+                            }
+
+                            if (range > 0)
+                            {
+                                _cmapTable.ImportInvalidCharacters(element.Operands, range);
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.beginnotdefrange:
+                        {
+                            var range = (element.Operands[0] as CInteger)?.Value ?? 0;
+
+                            element = innerContent[index++] as CIDOperator;
+                            opCode = element?.OpCode.OpCodeName;
+
+                            if (!opCode.HasValue)
+                            {
+                                continue;
+                            }
+
+                            if (opCode.Value != CIDOpCodeName.beginnotdefrange)
+                            {
+                                ContentReaderDiagnostics.ThrowContentReaderException("beginnotdefchar without a endnotdefrange");
+                            }
+
+                            if (range > 0)
+                            {
+                                _cmapTable.ImportInvalidCharactersRange(element.Operands, range);
+                            }
+                        }
+
+                        break;
+
+                    case CIDOpCodeName.endcmap:
+                        break;
+
+                    default:
+                        ContentReaderDiagnostics.ThrowContentReaderException($"operation not expected: {element.OpCode.Name}");
+                        break;
+                }
+            }
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.CMapName)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("CMapName not found");
+            }
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.currentdict)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("currentdict not found");
+            }
+
+            var resource = innerContent[index++] as CIDOperator;
+            if (resource?.OpCode.OpCodeName == CIDOpCodeName.defineresource)
+            {
+                var resourceName = (resource.Operands[0] as CName)?.Name;
+                if (resourceName != "/CMap")
+                {
+                    ContentReaderDiagnostics.ThrowContentReaderException("defineresource is not using a /CMap resource type");
+                }
+            }
+            else
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("defineresource not found");
+            }
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.pop)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("stack pop command not found");
+            }
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.end)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("end not found for CMap Dictionary");
+            }
+
+            if ((innerContent[index++] as CIDOperator)?.OpCode.OpCodeName != CIDOpCodeName.end)
+            {
+                ContentReaderDiagnostics.ThrowContentReaderException("end not found for findresource operation");
+            }
+        }
+
+        public static PdfToUnicodeMap FromDictionary(PdfDictionary toUnicodeMap)
+        {
+            var result = new PdfToUnicodeMap(toUnicodeMap);
+            result.ParseStream();
+
+            return result;
         }
     }
 }
