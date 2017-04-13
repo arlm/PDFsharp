@@ -279,7 +279,9 @@ namespace PdfSharp.Pdf.Content
                     _token.Append(ch);
                 }
                 else
+                {
                     break;
+                }
                 ch = ScanNextChar();
             }
 
@@ -310,6 +312,7 @@ namespace PdfSharp.Pdf.Content
             ContentReaderDiagnostics.ThrowNumberOutOfIntegerRange(value);
             return CSymbol.Error;
         }
+
         static readonly double[] PowersOf10 = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 };
 
         /// <summary>
