@@ -169,11 +169,6 @@ namespace PdfSharp.Fonts.CID
 
         internal void ImportCharacterMap(CSequence sequence, int count)
         {
-            if (sequence.Count > 200)
-            {
-                ContentReaderDiagnostics.ThrowContentReaderException("The character map array must contain at most 100 endpoint pairs");
-            }
-
             if (sequence.Count != count * 2)
             {
                 ContentReaderDiagnostics.ThrowContentReaderException("The character map array endpoint consists of a series of pairs, this array have an odd length");
@@ -200,11 +195,6 @@ namespace PdfSharp.Fonts.CID
 
         internal void ImportCharacterMapRange(CSequence sequence, int count)
         {
-            if (sequence.Count > 300)
-            {
-                ContentReaderDiagnostics.ThrowContentReaderException("The chracter map range array must contain at most 100 endpoint triplets");
-            }
-
             if (sequence.Count != count * 3)
             {
                 ContentReaderDiagnostics.ThrowContentReaderException("The chracter map range array consists of a series of triplets, this array length is not divisible by 3");
@@ -287,11 +277,6 @@ namespace PdfSharp.Fonts.CID
 
         internal void ImportCodeSpaceRange(CSequence sequence, int count)
         {
-            if (sequence.Count > 200)
-            {
-                ContentReaderDiagnostics.ThrowContentReaderException("The codespace range array must contain at most 100 endpoint pairs");
-            }
-
             if (sequence.Count != count * 2)
             {
                 ContentReaderDiagnostics.ThrowContentReaderException("The codespace range array endpoint consists of a series of pairs, this array have an odd length");
@@ -332,11 +317,6 @@ namespace PdfSharp.Fonts.CID
 
         internal void ImportInvalidCharacters(CSequence sequence, int count)
         {
-            if (sequence.Count > 200)
-            {
-                ContentReaderDiagnostics.ThrowContentReaderException("The notdef range array must contain at most 100 endpoint pairs");
-            }
-
             if (sequence.Count != count * 2)
             {
                 ContentReaderDiagnostics.ThrowContentReaderException("The notdef range array endpoint consists of a series of pairs, this array have an odd length");
@@ -363,11 +343,6 @@ namespace PdfSharp.Fonts.CID
 
         internal void ImportInvalidCharactersRange(CSequence sequence, int count)
         {
-            if (sequence.Count > 300)
-            {
-                ContentReaderDiagnostics.ThrowContentReaderException("The notdef range array must contain at most 100 endpoint triplets");
-            }
-
             if (sequence.Count != count * 3)
             {
                 ContentReaderDiagnostics.ThrowContentReaderException("The notdef range array consists of a series of triplets, this array length is not divisible by 3");
@@ -408,11 +383,6 @@ namespace PdfSharp.Fonts.CID
 
         internal void ImportValidCharacters(CSequence sequence, int count)
         {
-            if (sequence.Count > 200)
-            {
-                ContentReaderDiagnostics.ThrowContentReaderException("The cid code array must contain at most 100 endpoint pairs");
-            }
-
             if (sequence.Count != count * 2)
             {
                 ContentReaderDiagnostics.ThrowContentReaderException("The cid code array endpoint consists of a series of pairs, this array have an odd length");
@@ -439,11 +409,6 @@ namespace PdfSharp.Fonts.CID
 
         internal void ImportValidCharactersRange(CSequence sequence, int count)
         {
-            if (sequence.Count > 300)
-            {
-                ContentReaderDiagnostics.ThrowContentReaderException("The cid code range array must contain at most 100 endpoint triplets");
-            }
-
             if (sequence.Count != count * 3)
             {
                 ContentReaderDiagnostics.ThrowContentReaderException("The cid code range array consists of a series of triplets, this array length is not divisible by 3");
