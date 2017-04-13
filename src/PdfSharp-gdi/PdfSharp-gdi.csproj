@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
@@ -428,6 +428,36 @@
     </Compile>
     <Compile Include="..\PdfSharp\Drawing\XVector.cs">
       <Link>Drawing\XVector.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CIDContentReader.cs">
+      <Link>Fonts.CID\CIDContentReader.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CIDObjects.cs">
+      <Link>Fonts.CID\CIDObjects.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CIDOperators.cs">
+      <Link>Fonts.CID\CIDOperators.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CIDParser.cs">
+      <Link>Fonts.CID\CIDParser.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CIDRange.cs">
+      <Link>Fonts.CID\CIDRange.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CIDVersionControl.cs">
+      <Link>Fonts.CID\CIDVersionControl.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CMap.cs">
+      <Link>Fonts.CID\CMap.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\CMapDictionary.cs">
+      <Link>Fonts.CID\CMapDictionary.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\enums\CIDOpCodeName.cs">
+      <Link>Fonts.CID\enums\CIDOpCodeName.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Fonts.CID\enums\CIDOpCodesFlags.cs">
+      <Link>Fonts.CID\enums\CIDOpCodesFlags.cs</Link>
     </Compile>
     <Compile Include="..\PdfSharp\Fonts.OpenType\enums\FontTechnology.cs">
       <Link>Fonts.OpenType\enums\FontTechnology.cs</Link>
