@@ -513,5 +513,13 @@ namespace PdfSharp.Pdf.Advanced
 
             return result;
         }
+
+        public static PdfToUnicodeMap FromCMap(CMap toUnicodeCMap)
+        {
+            var result = new PdfToUnicodeMap(new PdfDictionary());
+            result._cmapTable = toUnicodeCMap;
+
+            return result;
+        }
     }
 }
