@@ -228,6 +228,20 @@ namespace PdfSharp.Pdf.IO
                         ReadSymbol(Symbol.EndObj);
                     return pdfObject;
 
+                case Symbol.HexString:
+                    pdfObject = new PdfStringObject(_document, _lexer.Token) { HexLiteral = true };
+                    pdfObject.SetObjectID(objectNumber, generationNumber);
+                    if (!fromObjecStream)
+                        ReadSymbol(Symbol.EndObj);
+                    return pdfObject;
+
+                case Symbol.UnicodeHexString:
+                    pdfObject = new PdfStringObject(_document, _lexer.Token) { HexLiteral = true, Encoding = PdfStringEncoding.Unicode };
+                    pdfObject.SetObjectID(objectNumber, generationNumber);
+                    if (!fromObjecStream)
+                        ReadSymbol(Symbol.EndObj);
+                    return pdfObject;
+
                 case Symbol.String:
                     pdfObject = new PdfStringObject(_document, _lexer.Token);
                     pdfObject.SetObjectID(objectNumber, generationNumber);
