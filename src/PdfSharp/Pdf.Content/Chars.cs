@@ -37,10 +37,10 @@ namespace PdfSharp.Pdf.Content
     internal static class Chars
     {
         public const char EOF = (char)65535; //unchecked((char)(-1));
-        public const char NUL = '\0';   // EOF
+        public const char NUL = '\0';  // EOF
         public const char CR = '\x0D'; // ignored by lexer
         public const char LF = '\x0A'; // Line feed
-        public const char BEL = '\a';   // Bell
+        public const char BEL = '\a';  // Bell
         public const char BS = '\b';   // Backspace
         public const char FF = '\f';   // Form feed
         public const char HT = '\t';   // Horizontal tab
