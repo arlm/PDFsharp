@@ -64,17 +64,25 @@ namespace PdfSharp.Pdf.Advanced
         {
             int n = Elements.GetInteger(Keys.N);
             int first = Elements.GetInteger(Keys.First);
-            Stream.TryUnfilter();
 
-            Parser parser = new Parser(null, new MemoryStream(Stream.Value));
-            _header = parser.ReadObjectStreamHeader(n, first);
+            if (Stream.TryUnfilter())
+            {
+                Parser parser = new Parser(null, new MemoryStream(Stream.Value));
+                _header = parser.ReadObjectStreamHeader(n, first);
 
 #if DEBUG && CORE
-            if (Internal.PdfDiagnostics.TraceObjectStreams)
-            {
-                Debug.WriteLine(String.Format("PdfObjectStream(document) created. Header item count: {0}", _header.GetLength(0)));
-            }
+                if (Internal.PdfDiagnostics.TraceObjectStreams)
+                {
+                    Debug.WriteLine(String.Format("PdfObjectStream(document) created. Header item count: {0}", _header.GetLength(0)));
+                }
 #endif
+            }
+            else
+            {
+#if DEBUG
+                Debug.WriteLine(String.Format("PdfObjectStream(document) creation failed [{0}]", dict.Reference?.ObjectID.DebuggerDisplay ?? "NULL iref"));
+#endif
+            }
         }
 
         /// <summary>
@@ -82,6 +90,14 @@ namespace PdfSharp.Pdf.Advanced
         /// </summary>
         internal void ReadReferences(PdfCrossReferenceTable xrefTable)
         {
+            if (_header == null)
+            {
+#if DEBUG
+                Debug.WriteLine(string.Format("Could not load references because the stream header was null. [{0}]", this.ObjectID.DebuggerDisplay));
+#endif
+                return;
+            }
+
             ////// Create parser for stream.
             ////Parser parser = new Parser(_document, new MemoryStream(Stream.Value));
             for (int idx = 0; idx < _header.Length; idx++)
@@ -111,6 +127,14 @@ namespace PdfSharp.Pdf.Advanced
         /// </summary>
         internal PdfReference ReadCompressedObject(int index)
         {
+            if (_header == null)
+            {
+#if DEBUG
+                Debug.WriteLine(string.Format("Could not read compressed object because the stream header was null. [{0}]", this.ObjectID.DebuggerDisplay));
+#endif
+                return null;
+            }
+
             Parser parser = new Parser(_document, new MemoryStream(Stream.Value));
             int objectNumber = _header[index][0];
             int offset = _header[index][1];
