@@ -312,7 +312,9 @@ namespace PdfSharp.Pdf.Content
                     _token.Append(ch);
                 }
                 else
+                {
                     break;
+                }
                 ch = ScanNextChar();
             }
 

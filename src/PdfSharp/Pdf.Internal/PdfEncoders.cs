@@ -365,7 +365,9 @@ namespace PdfSharp.Pdf.Internal
                                         pdf.Append((char)(ch / 8 + '0'));
                                     }
                                     else
+                                    {
                                         pdf.Append(ch);
+                                    }
                                     break;
                             }
                         }
@@ -425,8 +427,8 @@ namespace PdfSharp.Pdf.Internal
             return RawEncoding.GetBytes(pdf.ToString());
         }
 
-        /// <summary>
-        /// Converts WinAnsi to DocEncode characters. Incomplete, just maps â‚¬ and some other characters.
+       /// <summary>
+       /// Converts WinAnsi to DocEncode characters. Incomplete, just maps € and some other characters.
         /// </summary>
         static byte[] docencode_______ = new byte[256]
         {
