@@ -421,7 +421,10 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
 
         IEnumerator<CObject> IEnumerable<CObject>.GetEnumerator()
         {
-            throw new NotImplementedException();
+            foreach(var item in _items)
+            {
+                yield return item;
+            }
         }
 
         #endregion
@@ -771,14 +774,15 @@ namespace PdfSharp.Pdf.Content.Objects  // TODO: split into single files
             get { return _name; }
             set
             {
-                if (String.IsNullOrEmpty(_name))
-                    throw new ArgumentNullException("name");
-                if (_name[0] != '/')
+                if (string.IsNullOrEmpty(value))
+                    throw new ArgumentNullException(nameof(value));
+                if (value[0] != '/')
                     throw new ArgumentException(PSSR.NameMustStartWithSlash);
                 _name = value;
             }
         }
-        string _name;
+
+        private string _name;
 
         /// <summary>
         /// Returns a string that represents the current value.

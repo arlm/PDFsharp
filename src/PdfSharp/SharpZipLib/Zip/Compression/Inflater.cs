@@ -40,6 +40,7 @@
 using System;
 using PdfSharp.SharpZipLib.Checksums;
 using PdfSharp.SharpZipLib.Zip.Compression.Streams;
+using System.Diagnostics;
 
 namespace PdfSharp.SharpZipLib.Zip.Compression
 {
@@ -252,6 +253,9 @@ namespace PdfSharp.SharpZipLib.Zip.Compression
             header = ((header << 8) | (header >> 8)) & 0xffff;
             if (header % 31 != 0)
             {
+#if DEBUG
+                Debug.WriteLine(String.Format("Illegal checksum on zlib/RFC1950 header [0x{0:X4}]", header));
+#endif
                 throw new SharpZipBaseException("Header checksum illegal");
             }
 

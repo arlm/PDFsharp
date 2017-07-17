@@ -201,7 +201,7 @@ namespace PdfSharp.Pdf.Advanced
             if (iref != null && iref.Value == null)
             {
                 iref = _document._irefTable[iref.ObjectID];
-                Debug.Assert(iref.Value != null);
+                Debug.Assert(iref != null && iref.Value != null);
                 _document._trailer.Elements[Keys.Info] = iref;
             }
 
