@@ -42,6 +42,6 @@ namespace PdfSharp.Fonts.CID
         def, begincmap, endbfchar, endcmap, begin, begincodespacerange, endcodespacerange, beginbfchar, pop, end,
         findresource, dict, beginbfrange, endbfrange, CMapName, currentdict, defineresource, begincidrange,
         endcidrange, beginnotdefrange, endnotdefrange, usecmap, usefont, begincidchar, endcidchar,
-        beginnotdefchar, endnotdefchar, CIDSystemInfo, dup
+        beginnotdefchar, endnotdefchar, CIDSystemInfo, dup, cvn
     }
 }

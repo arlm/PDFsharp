@@ -157,7 +157,12 @@ namespace PdfSharp.Fonts.CID
                     case CSymbol.Operator:
                         op = CreateOperator();
                         //_operands.Clear();
-                        sequence.Add(op);
+
+                        if (op.OpCode.OpCodeName != CIDOpCodeName.cvn)
+                        {
+                            sequence.Add(op);
+                        }
+
                         break;
 
                     case CSymbol.BeginArray:
@@ -213,8 +218,33 @@ namespace PdfSharp.Fonts.CID
 
         CIDOperator CreateOperator(CIDOperator op)
         {
+            if (op.OpCode.OpCodeName == CIDOpCodeName.cvn)
+            {
+                if (_operands.Count >= 1)
+                {
+                    CString text = _operands[0] as CString;
+                    CSequence sequence = new CSequence();
+
+                    if (text != null && !string.IsNullOrEmpty(text.Value))
+                    {
+                        CName name = new CName();
+                        name.Name = text.Value;
+                        _operands[0] = name;
+                        sequence.Add(text);
+                    }
+                    else if (_operands[0] is CName)
+                    {
+                        sequence.Add(_operands[0]);
+                    }
+
+                    op.Operands.Add(sequence);
+                    return op;
+                }
+            }
+
             op.Operands.Add(_operands);
             _operands.Clear();
+
             return op;
         }
 

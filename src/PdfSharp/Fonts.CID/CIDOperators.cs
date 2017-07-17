@@ -73,6 +73,9 @@ namespace PdfSharp.Fonts.CID
         private static readonly CIDOpCode currentdict = new CIDOpCode("currentdict", CIDOpCodeName.currentdict, 0, null, CIDOpCodeFlags.None,
                         "Defines the resource category");
 
+        private static readonly CIDOpCode cvn = new CIDOpCode("cvn", CIDOpCodeName.cvn, 1, "name, convertion", CIDOpCodeFlags.None,
+                        "Converts a string to a name");
+
         private static readonly CIDOpCode def = new CIDOpCode("def", CIDOpCodeName.def, 0, null, CIDOpCodeFlags.None,
                         "Defines a dictionary key and value");
 
@@ -138,7 +141,7 @@ namespace PdfSharp.Fonts.CID
                 Dictionary,
                 def, begincmap, endbfchar, endcmap, begin, begincodespacerange, endcodespacerange, beginbfchar, pop, end, findresource, dict, beginbfrange, endbfrange,
                 CMapName, currentdict, defineresource, begincidrange, endcidrange, beginnotdefrange, endnotdefrange, usecmap, usefont, begincidchar, endcidchar,
-                beginnotdefchar, endnotdefchar, CIDSystemInfo, dup
+                beginnotdefchar, endnotdefchar, CIDSystemInfo, dup, cvn
             };
 
         /// <summary>
