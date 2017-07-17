@@ -139,9 +139,18 @@ namespace PdfSharp.Fonts.CID
                     .Replace("<", "[<")
                     .Replace(">", ">]");
 
-                var items = formattedItems.Split(new char[] { ' ', '\n', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+                var rawItems = formattedItems.Split(new char[] { ' ', '\n', '[', ']' }, StringSplitOptions.RemoveEmptyEntries);
+                var items = new List<string>(6);
 
-                if (items.Length != 6)
+                foreach (var item in rawItems)
+                {
+                    if (item != "def")
+                    {
+                        items.Add(item);
+                    }
+                }
+
+                if (items.Count != 6)
                 {
                     ContentReaderDiagnostics.ThrowContentReaderException("Invalid CIDSystemInfo dictionary length");
                 }
@@ -205,11 +214,7 @@ namespace PdfSharp.Fonts.CID
             switch (key)
             {
                 case Keys.Registry:
-                    if (Elements.ContainsKey(key))
-                    {
-                        ContentReaderDiagnostics.ThrowContentReaderException("Duplicated element on CIDSystemInfo dictionary");
-                    }
-                    else if (!(value is PdfString))
+                    if (!(value is PdfString))
                     {
                         ContentReaderDiagnostics.ThrowContentReaderException("/Registry CIDSystemInfo element should be of PdfString type");
                     }
@@ -217,11 +222,7 @@ namespace PdfSharp.Fonts.CID
                     break;
 
                 case Keys.Ordering:
-                    if (Elements.ContainsKey(key))
-                    {
-                        ContentReaderDiagnostics.ThrowContentReaderException("Duplicated element on CIDSystemInfo dictionary");
-                    }
-                    else if (!(value is PdfString))
+                    if (!(value is PdfString))
                     {
                         ContentReaderDiagnostics.ThrowContentReaderException("/Ordering CIDSystemInfo element should be of PdfString type");
                     }
@@ -229,11 +230,7 @@ namespace PdfSharp.Fonts.CID
                     break;
 
                 case Keys.Supplement:
-                    if (Elements.ContainsKey(key))
-                    {
-                        ContentReaderDiagnostics.ThrowContentReaderException("Duplicated element on CIDSystemInfo dictionary");
-                    }
-                    else if (!(value is PdfInteger))
+                    if (!(value is PdfInteger))
                     {
                         ContentReaderDiagnostics.ThrowContentReaderException("/Supplement CIDSystemInfo element should be of PdfInteger type");
                     }
@@ -243,6 +240,11 @@ namespace PdfSharp.Fonts.CID
                 default:
                     ContentReaderDiagnostics.ThrowContentReaderException("Invalid CIDSystemInfo dictionary");
                     break;
+            }
+
+            if (Elements.ContainsKey(key))
+            {
+                Elements.Remove(key);
             }
 
             Elements.Add(key, value);
