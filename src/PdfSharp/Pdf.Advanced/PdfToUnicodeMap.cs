@@ -64,9 +64,9 @@ namespace PdfSharp.Pdf.Advanced
         }
 
         /// <summary>
-        /// Gets or sets the CID Versíon Control info.
-        /// </summar
-        public CIDVersionControl CIDVersíonControl
+        /// Gets or sets the CID Version Control info.
+        /// </summary>
+        public CIDVersionControl CIDVersionControl
         {
             get { return _versionControlInfo; }
             set { _versionControlInfo = value; }
