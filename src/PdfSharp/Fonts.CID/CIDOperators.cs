@@ -27,6 +27,7 @@
 // DEALINGS IN THE SOFTWARE.
 #endregion
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -164,7 +165,17 @@ namespace PdfSharp.Fonts.CID
         static public CIDOperator OperatorFromName(string name)
         {
             CIDOperator op = null;
-            CIDOpCode opcode = StringToOpCode[name];
+            CIDOpCode opcode = null;
+
+            if (StringToOpCode.ContainsKey(name))
+            {
+                opcode = StringToOpCode[name];
+            }
+            else
+            {
+                throw new ArgumentException($"Operator {name} not found on PDFSharp dictionary", nameof(name));
+            }
+
             if (opcode != null)
             {
                 op = new CIDOperator(opcode);
