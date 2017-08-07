@@ -38,7 +38,7 @@ namespace PdfSharp.Pdf.Security
     /// </summary>
     public abstract class PdfSecurityHandler : PdfDictionary
     {
-        public const string Standard = "/Standard";
+        public const string Filter = "/Standard";
 
         internal PdfSecurityHandler(PdfDocument document)
             : base(document)

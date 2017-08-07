@@ -1,31 +1,32 @@
 ﻿using System;
 
+/**
+* an implementation of the AES (Rijndael)), from FIPS-197.
+* <p>
+* For further details see: <a href="http://csrc.nist.gov/encryption/aes/">http://csrc.nist.gov/encryption/aes/</a>.
+*
+* This implementation is based on optimizations from Dr. Brian Gladman's paper and C code at
+* <a href="http://fp.gladman.plus.com/cryptography_technology/rijndael/">http://fp.gladman.plus.com/cryptography_technology/rijndael/</a>
+*
+* There are three levels of tradeoff of speed vs memory
+* Because java has no preprocessor), they are written as three separate classes from which to choose
+*
+* The fastest uses 8Kbytes of static tables to precompute round calculations), 4 256 word tables for encryption
+* and 4 for decryption.
+*
+* The middle performance version uses only one 256 word table for each), for a total of 2Kbytes),
+* adding 12 rotate operations per round to compute the values contained in the other tables from
+* the contents of the first
+*
+* The slowest version uses no static tables at all and computes the values in each round
+* </p>
+* <p>
+* This file contains the fast version with 8Kbytes of static tables for round precomputation
+* </p>
+*/
+
 namespace PdfSharp.Pdf.Security
 {
-    /**
-        * an implementation of the AES (Rijndael)), from FIPS-197.
-        * <p>
-        * For further details see: <a href="http://csrc.nist.gov/encryption/aes/">http://csrc.nist.gov/encryption/aes/</a>.
-        *
-        * This implementation is based on optimizations from Dr. Brian Gladman's paper and C code at
-        * <a href="http://fp.gladman.plus.com/cryptography_technology/rijndael/">http://fp.gladman.plus.com/cryptography_technology/rijndael/</a>
-        *
-        * There are three levels of tradeoff of speed vs memory
-        * Because java has no preprocessor), they are written as three separate classes from which to choose
-        *
-        * The fastest uses 8Kbytes of static tables to precompute round calculations), 4 256 word tables for encryption
-        * and 4 for decryption.
-        *
-        * The middle performance version uses only one 256 word table for each), for a total of 2Kbytes),
-        * adding 12 rotate operations per round to compute the values contained in the other tables from
-        * the contents of the first
-        *
-        * The slowest version uses no static tables at all and computes the values in each round
-        * </p>
-        * <p>
-        * This file contains the fast version with 8Kbytes of static tables for round precomputation
-        * </p>
-        */
     public class AESManaged
     {
         // The S box

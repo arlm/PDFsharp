@@ -58,9 +58,18 @@ namespace PdfSharp.Pdf.Security
         /// and implicitly decrypts data with Algorithm 3.1, using the AES algorithm in
         /// Cipher Block Chaining (CBC) mode with a 16-byte block size and an
         /// initialization vector that is randomly generated and placed as the first
-        /// 16 bytes in the stream or string.
+        /// 16 bytes in the stream or string. The key size (Length) shall be 128 bits.
         /// </summary>
         public const string AESV2 = "/AESV2";
+
+        /// <summary>
+        /// (Extension Level 3) The application asks the security handler for the encryption key
+        /// and implicitly decrypt data with Algorithm 1a, using the AES-256 algorithm in 
+        /// Cipher Block Chaining (CBC) with padding mode with a 16-byte block size and an 
+        /// initialization vector that is randomly generated and placed as the first
+        /// 16 bytes in the stream or string. The key size (Length) shall be 256 bits.
+        /// </summary>
+        public const string AESV3 = "/AESV3";
 
         /// <summary>
         /// NoneThe application does not decrypt data but directs the input stream to

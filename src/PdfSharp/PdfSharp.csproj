@@ -308,7 +308,10 @@
     <Compile Include="Pdf.Security\AESManaged.cs" />
     <Compile Include="Pdf.Security\enums\PdfDocumentSecurity.cs" />
     <Compile Include="Pdf.Security\enums\PdfUserAccessPermission.cs" />
+    <Compile Include="Pdf.Security\StringPrep.cs" />
+    <Compile Include="Pdf.Security\SHA256Managed.cs" />
     <Compile Include="Pdf.Security\MD5Managed.cs" />
+    <Compile Include="Pdf.Security\PdfAESV3SecurityHandler.cs" />
     <Compile Include="Pdf.Security\PdfCryptoFilter.cs" />
     <Compile Include="Pdf.Security\PdfSecurityHandler.cs" />
     <Compile Include="Pdf.Security\PdfSecuritySettings.cs" />
