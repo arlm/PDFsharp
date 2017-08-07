@@ -333,6 +333,7 @@
     <Compile Include="Pdf\PdfCustomValue.cs" />
     <Compile Include="Pdf\PdfCustomValues.cs" />
     <Compile Include="Pdf\PdfDate.cs" />
+    <Compile Include="Pdf\PdfNameTree.cs" />
     <Compile Include="Pdf\PdfDictionary.cs" />
     <Compile Include="Pdf\PdfDocument.cs" />
     <Compile Include="Pdf\PdfDocumentInformation.cs" />

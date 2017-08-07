@@ -963,6 +963,9 @@
     <Compile Include="..\PdfSharp\Pdf\PdfNameObject.cs">
       <Link>Pdf\PdfNameObject.cs</Link>
     </Compile>
+    <Compile Include="..\PdfSharp\Pdf\PdfNameTree.cs">
+      <Link>Pdf\PdfNameTree.cs</Link>
+    </Compile>
     <Compile Include="..\PdfSharp\Pdf\PdfNull.cs">
       <Link>Pdf\PdfNull.cs</Link>
     </Compile>

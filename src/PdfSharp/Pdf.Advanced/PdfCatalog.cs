@@ -156,6 +156,27 @@ namespace PdfSharp.Pdf.Advanced
         PdfOutline _outline;
 
         /// <summary>
+        /// Implementation of PdfDocument.Names.
+        /// </summary>
+        internal PdfDictionary Names
+        {
+            get
+            {
+                if (_names == null)
+                {
+                    ////// Ensure that the page tree exists.
+                    ////// ReSharper disable once UnusedVariable because we need dummy to call the getter.
+                    ////PdfPages dummy = Pages;
+
+                    // Now create the _names item tree.
+                    _names = (PdfDictionary)Elements.GetValue(Keys.Names, VCF.CreateIndirect);
+                }
+                return _names;
+            }
+        }
+        PdfDictionary _names;
+
+        /// <summary>
         /// Gets the AcroForm dictionary of this document.
         /// </summary>
         public PdfAcroForm AcroForm
@@ -252,7 +273,7 @@ namespace PdfSharp.Pdf.Advanced
             /// <summary>
             /// (Optional; PDF 1.2) The document’s name dictionary.
             /// </summary>
-            [KeyInfo("1.2", KeyType.Dictionary | KeyType.Optional)]
+            [KeyInfo("1.2", KeyType.NameTree | KeyType.Optional)]
             public const string Names = "/Names";
 
             /// <summary>

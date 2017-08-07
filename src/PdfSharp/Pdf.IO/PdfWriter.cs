@@ -436,6 +436,40 @@ namespace PdfSharp.Pdf.IO
             WriteRaw("endstream\n");
         }
 
+        /// <summary>
+        /// Writes the stream of the specified name tree.
+        /// </summary>
+        public void WriteStream(PdfNameTree value, bool omitStream)
+        {
+            StackItem stackItem = _stack[_stack.Count - 1];
+            Debug.Assert(stackItem.Object is PdfDictionary);
+            Debug.Assert(stackItem.Object.IsIndirect);
+            stackItem.HasStream = true;
+
+            WriteRaw(_lastCat == CharCat.NewLine ? ">>\nstream\n" : " >>\nstream\n");
+
+            if (omitStream)
+            {
+                WriteRaw("  «...stream content omitted...»\n");  // useful for debugging only
+            }
+            else
+            {
+                byte[] bytes = value.Stream.Value;
+                if (bytes.Length != 0)
+                {
+                    if (_securityHandler != null)
+                    {
+                        bytes = (byte[])bytes.Clone();
+                        bytes = _securityHandler.EncryptBytes(bytes);
+                    }
+                    Write(bytes);
+                    if (_lastCat != CharCat.NewLine)
+                        WriteRaw('\n');
+                }
+            }
+            WriteRaw("endstream\n");
+        }
+
         public void WriteRaw(string rawString)
         {
             if (String.IsNullOrEmpty(rawString))

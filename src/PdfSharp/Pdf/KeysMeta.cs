@@ -150,6 +150,9 @@ namespace PdfSharp.Pdf
 
                     // The following types are not yet used
 
+                    case KeyType.NameTree:
+                        throw new NotImplementedException("KeyType.NameTree");
+
                     case KeyType.NumberTree:
                         throw new NotImplementedException("KeyType.NumberTree");
 
