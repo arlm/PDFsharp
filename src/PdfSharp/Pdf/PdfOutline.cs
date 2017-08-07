@@ -361,6 +361,18 @@ namespace PdfSharp.Pdf
                 {
                     destArray = (dest as PdfReference).Value as PdfArray;
                 }
+                else if (dest is PdfString)
+                {
+                    PdfString name = dest as PdfString;
+
+                    destArray = FindName(name);
+                }
+                if (dest is PdfName)
+                {
+                    PdfName name = dest as PdfName;
+
+                    destArray = FindName(name);
+                }
                 else
                 {
                     destArray = dest as PdfArray;
@@ -415,6 +427,16 @@ namespace PdfSharp.Pdf
             }
 
             InitializeChildren();
+        }
+
+        PdfArray FindName(PdfName name)
+        {
+            return null;
+        }
+
+        PdfArray FindName(PdfString name)
+        {
+            return null;
         }
 
         void SplitDestinationPage(PdfArray destination)  // Reference: 8.2 Destination syntax / Page 582
