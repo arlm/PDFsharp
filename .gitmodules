@@ -1,3 +1,6 @@
 [submodule "PDFSharp.Extensions"]
 	path = PDFSharp.Extensions
 url=git@github.com:arlm/PDFSharp.Extensions.git
+[submodule "PdfSharp.XPS"]
+	path = PdfSharp.XPS
+	url = git@github.com:arlm/PdfSharp.XPS.git
