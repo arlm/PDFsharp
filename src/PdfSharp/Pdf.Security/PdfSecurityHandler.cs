@@ -62,7 +62,11 @@ namespace PdfSharp.Pdf.Security
 
         public abstract void EncryptDocument();
 
+        public abstract void DecryptDocument();
+
         public abstract byte[] EncryptBytes(byte[] bytes);
+
+        public abstract byte[] DecryptBytes(byte[] bytes);
 
         /// <summary>
         /// Predefined keys of this dictionary.

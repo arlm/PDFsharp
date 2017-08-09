@@ -106,7 +106,7 @@ namespace PdfSharp.Pdf.Security
             get
             {
                 PdfUserAccessPermission permission = (PdfUserAccessPermission)Elements.GetInteger(Keys.P);
-                if ((int)permission == 0)
+                if (permission == 0)
                     permission = PdfUserAccessPermission.PermitAll;
                 return permission;
             }
@@ -123,6 +123,14 @@ namespace PdfSharp.Pdf.Security
                 if (!ReferenceEquals(iref.Value, this))
                     EncryptObject(iref.Value);
             }
+        }
+
+        /// <summary>
+        /// Decrypts the whole document.
+        /// </summary>
+        public override void DecryptDocument()
+        {
+            EncryptDocument();
         }
 
         /// <summary>
@@ -233,6 +241,14 @@ namespace PdfSharp.Pdf.Security
                 EncryptRC4(bytes);
             }
             return bytes;
+        }
+
+        /// <summary>
+        /// Decrypts an array.
+        /// </summary>
+        public override byte[] DecryptBytes(byte[] bytes)
+        {
+            return EncryptBytes(bytes);
         }
 
         #region Encryption Algorithms

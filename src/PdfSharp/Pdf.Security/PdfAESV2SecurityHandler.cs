@@ -56,6 +56,20 @@ namespace PdfSharp.Pdf.Security
             : base(dict)
         { }
 
+        public bool EncryptMetadata
+        {
+            internal get
+            {
+                return _encryptMetadata;
+            }
+
+            set
+            {
+                _encryptMetadata = value;
+            }
+        }
+        private bool _encryptMetadata;
+
         /// <summary>
         /// Sets the user password of the document. Setting a password automatically sets the
         /// PdfDocumentSecurityLevel to PdfDocumentSecurityLevel.Encrypted128Bit if its current
@@ -106,7 +120,7 @@ namespace PdfSharp.Pdf.Security
             get
             {
                 PdfUserAccessPermission permission = (PdfUserAccessPermission)Elements.GetInteger(Keys.P);
-                if ((int)permission == 0)
+                if (permission == 0)
                     permission = PdfUserAccessPermission.PermitAll;
                 return permission;
             }
@@ -122,6 +136,18 @@ namespace PdfSharp.Pdf.Security
             {
                 if (!ReferenceEquals(iref.Value, this))
                     EncryptObject(iref.Value);
+            }
+        }
+
+        /// <summary>
+        /// Decrypts the whole document.
+        /// </summary>
+        public override void DecryptDocument()
+        {
+            foreach (PdfReference iref in _document._irefTable.AllReferences)
+            {
+                if (!ReferenceEquals(iref.Value, this))
+                    DecryptObject(iref.Value);
             }
         }
 
@@ -158,6 +184,43 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
+        /// Decrypts an indirect object.
+        /// </summary>
+        internal void DecryptObject(PdfObject value)
+        {
+            Debug.Assert(value.Reference != null);
+
+            SetHashKey(value.ObjectID);
+#if DEBUG
+            if (value.ObjectID.ObjectNumber == 10)
+                GetType();
+#endif
+
+            PdfDictionary dict;
+            PdfArray array;
+            PdfStringObject str;
+            if ((dict = value as PdfDictionary) != null)
+                DecryptDictionary(dict);
+            else if ((array = value as PdfArray) != null)
+                DecryptArray(array);
+            else if ((str = value as PdfStringObject) != null)
+            {
+                if (str.Length != 0)
+                {
+                    byte[] bytes = str.EncryptionValue;
+                    PrepareAESKey();
+                    PrepareAESIV(bytes, 0, 16);
+                    int length = DecryptAES(bytes, 16, bytes.Length - 16);
+
+                    byte[] temp = new byte[length];
+                    Array.Copy(bytes, temp, length);
+
+                    str.EncryptionValue = temp;
+                }
+            }
+        }
+
+        /// <summary>
         /// Encrypts a dictionary.
         /// </summary>
         void EncryptDictionary(PdfDictionary dict)
@@ -188,6 +251,41 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
+        /// Decrypts a dictionary.
+        /// </summary>
+        void DecryptDictionary(PdfDictionary dict)
+        {
+            PdfName[] names = dict.Elements.KeyNames;
+            foreach (KeyValuePair<string, PdfItem> item in dict.Elements)
+            {
+                PdfString value1;
+                PdfDictionary value2;
+                PdfArray value3;
+                if ((value1 = item.Value as PdfString) != null)
+                    DecryptString(value1);
+                else if ((value2 = item.Value as PdfDictionary) != null)
+                    DecryptDictionary(value2);
+                else if ((value3 = item.Value as PdfArray) != null)
+                    DecryptArray(value3);
+            }
+            if (dict.Stream != null)
+            {
+                byte[] bytes = dict.Stream.Value;
+                if (bytes.Length != 0)
+                {
+                    PrepareAESKey();
+                    PrepareAESIV(bytes, 0, 16);
+                    int length = DecryptAES(bytes, 16, bytes.Length - 16);
+
+                    byte[] temp = new byte[length];
+                    Array.Copy(bytes, temp, length);
+
+                    dict.Stream.Value = temp;
+                }
+            }
+        }
+
+        /// <summary>
         /// Encrypts an array.
         /// </summary>
         void EncryptArray(PdfArray array)
@@ -209,6 +307,27 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
+        /// Decrypts an array.
+        /// </summary>
+        void DecryptArray(PdfArray array)
+        {
+            int count = array.Elements.Count;
+            for (int idx = 0; idx < count; idx++)
+            {
+                PdfItem item = array.Elements[idx];
+                PdfString value1;
+                PdfDictionary value2;
+                PdfArray value3;
+                if ((value1 = item as PdfString) != null)
+                    DecryptString(value1);
+                else if ((value2 = item as PdfDictionary) != null)
+                    DecryptDictionary(value2);
+                else if ((value3 = item as PdfArray) != null)
+                    DecryptArray(value3);
+            }
+        }
+
+        /// <summary>
         /// Encrypts a string.
         /// </summary>
         void EncryptString(PdfString value)
@@ -223,6 +342,25 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
+        /// Decrypts a string.
+        /// </summary>
+        void DecryptString(PdfString value)
+        {
+            if (value.Length != 0)
+            {
+                byte[] bytes = value.EncryptionValue;
+                PrepareAESKey();
+                PrepareAESIV(bytes, 0, 16);
+                int length = DecryptAES(bytes, 16, bytes.Length - 16);
+
+                byte[] temp = new byte[length];
+                Array.Copy(bytes, temp, length);
+
+                value.EncryptionValue = temp;
+            }
+        }
+
+        /// <summary>
         /// Encrypts an array.
         /// </summary>
         public override byte[] EncryptBytes(byte[] bytes)
@@ -232,6 +370,25 @@ namespace PdfSharp.Pdf.Security
                 PrepareAESKey();
                 EncryptAES(bytes);
             }
+            return bytes;
+        }
+
+        /// <summary>
+        /// Decrypts an array.
+        /// </summary>
+        public override byte[] DecryptBytes(byte[] bytes)
+        {
+            if (bytes != null && bytes.Length != 0)
+            {
+                PrepareAESKey();
+                int length = DecryptAES(bytes, 16, bytes.Length - 16);
+
+                byte[] temp = new byte[length];
+                Array.Copy(bytes, temp, length);
+
+                return temp;
+            }
+
             return bytes;
         }
 
@@ -282,11 +439,11 @@ namespace PdfSharp.Pdf.Security
             byte[] uValue = PdfEncoders.RawEncoding.GetBytes(Elements.GetString(Keys.U));
             int pValue = Elements.GetInteger(Keys.P);
             int rValue = Elements.GetInteger(Keys.R);
-            bool encryptMetadata = true;
+            _encryptMetadata = true;
 
             if (Elements.ContainsKey(PdfCryptoFilter.Keys.EncryptMetadata))
             {
-                encryptMetadata = Elements.GetBoolean(PdfCryptoFilter.Keys.EncryptMetadata);
+                _encryptMetadata = Elements.GetBoolean(PdfCryptoFilter.Keys.EncryptMetadata);
             }
 
             if (inputPassword == null)
@@ -295,9 +452,9 @@ namespace PdfSharp.Pdf.Security
             }
 
             // Try owner password first.
-            InitWithOwnerPassword(documentID, inputPassword, inputPassword, oValue, pValue, encryptMetadata);
+            InitWithOwnerPassword(documentID, inputPassword, inputPassword, oValue, pValue, _encryptMetadata);
 
-            PasswordValidity result = CheckOwnerPassword(documentID, pValue, _ownerKey, oValue, uValue, encryptMetadata);
+            PasswordValidity result = CheckOwnerPassword(documentID, pValue, _ownerKey, oValue, uValue, _encryptMetadata);
             _document.SecuritySettings._hasOwnerPermissions = result == PasswordValidity.OwnerPassword;
 
             if (result == PasswordValidity.OwnerPassword)
@@ -307,7 +464,7 @@ namespace PdfSharp.Pdf.Security
 
             // Now try user password.
             //password = PdfEncoders.RawEncoding.GetBytes(inputPassword);
-            InitWithUserPassword(documentID, inputPassword, oValue, pValue, encryptMetadata);
+            InitWithUserPassword(documentID, inputPassword, oValue, pValue, _encryptMetadata);
 
             return CheckUserPassword(_userKey, uValue);
         }
@@ -664,24 +821,60 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// Prepare the encryption key.
         /// </summary>
-        void PrepareAESKey()
+        internal void PrepareAESKey()
         {
-            PrepareAESKey(_key, 0, _keySize);
+            PrepareAESKey(_key, 0, _key.Length);
         }
 
         /// <summary>
         /// Prepare the encryption key.
         /// </summary>
-        void PrepareAESKey(byte[] key)
+        internal void PrepareAESKey(byte[] key, int offset = 0, int length = 0)
         {
-            PrepareAESKey(key, 0, key.Length);
+            if (length == 0)
+            {
+                length = key.Length;
+            }
+
+            _aes.Clear();
+            _aes.BlockSize = 128;
+            _aes.KeySize = 128;
+            _aes.Mode = CipherMode.CBC;
+            _aes.Padding = PaddingMode.PKCS7;
+
+            byte[] temp = new byte[length];
+            Array.Copy(key, offset, temp, 0, length);
+            _aes.Key = temp;
         }
 
         /// <summary>
         /// Prepare the encryption key.
         /// </summary>
-        void PrepareAESKey(byte[] key, int offset, int length)
+        internal void PrepareAESIV(byte[] iv)
         {
+            PrepareAESIV(iv, 0, iv?.Length ?? 0);
+        }
+
+        /// <summary>
+        /// Prepare the encryption key.
+        /// </summary>
+        internal void PrepareAESIV(byte[] iv, int offset = 0, int length = 0)
+        {
+            if (iv == null)
+            {
+                _aes.IV = new byte[16];
+            }
+            else
+            {
+                if (length == 0)
+                {
+                    length = iv.Length;
+                }
+
+                byte[] temp = new byte[length];
+                Array.Copy(iv, offset, temp, 0, length);
+                _aes.IV = temp;
+            }
         }
 
         /// <summary>
@@ -733,50 +926,91 @@ namespace PdfSharp.Pdf.Security
         }
 
         /// <summary>
+        /// Decrypts the data.
+        /// </summary>
+        // ReSharper disable InconsistentNaming
+        internal int DecryptAES(byte[] data)
+        // ReSharper restore InconsistentNaming
+        {
+            return DecryptAES(data, 0, data.Length, data);
+        }
+
+        /// <summary>
+        /// Decrypts the data.
+        /// </summary>
+        // ReSharper disable InconsistentNaming
+        internal int DecryptAES(byte[] data, int offset, int length)
+        // ReSharper restore InconsistentNaming
+        {
+            return DecryptAES(data, offset, length, data);
+        }
+
+        /// <summary>
+        /// Decrypts the data.
+        /// </summary>
+        internal int DecryptAES(byte[] inputData, byte[] outputData)
+        {
+            return DecryptAES(inputData, 0, inputData.Length, outputData);
+        }
+
+        /// <summary>
+        /// Decrypts the data.
+        /// </summary>
+        internal int DecryptAES(byte[] inputData, int offset, int length, byte[] outputData)
+        {
+            using (var decryptor = _aes.CreateDecryptor())
+            {
+                var data = decryptor.TransformFinalBlock(inputData, offset, length);
+                int responseLength = Math.Min(data.Length, length);
+
+                Array.Clear(outputData, 0, length);
+                Array.Copy(data, outputData, responseLength);
+
+                return responseLength;
+            }
+        }
+
+        /// <summary>
         /// Encrypts the data.
         /// </summary>
         // ReSharper disable InconsistentNaming
-        void EncryptAES(byte[] data)
+        internal int EncryptAES(byte[] data)
         // ReSharper restore InconsistentNaming
         {
-            EncryptAES(data, 0, data.Length, data);
+            return EncryptAES(data, 0, data.Length, data);
         }
 
         /// <summary>
         /// Encrypts the data.
         /// </summary>
         // ReSharper disable InconsistentNaming
-        void EncryptAES(byte[] data, int offset, int length)
+        internal int EncryptAES(byte[] data, int offset, int length)
         // ReSharper restore InconsistentNaming
         {
-            EncryptAES(data, offset, length, data);
+            return EncryptAES(data, offset, length, data);
         }
 
         /// <summary>
         /// Encrypts the data.
         /// </summary>
-        void EncryptAES(byte[] inputData, byte[] outputData)
+        internal int EncryptAES(byte[] inputData, byte[] outputData)
         {
-            EncryptAES(inputData, 0, inputData.Length, outputData);
+            return EncryptAES(inputData, 0, inputData.Length, outputData);
         }
 
         /// <summary>
         /// Encrypts the data.
         /// </summary>
-        void EncryptAES(byte[] inputData, int offset, int length, byte[] outputData)
+        internal int EncryptAES(byte[] inputData, int offset, int length, byte[] outputData)
         {
-            length += offset;
-            byte padding = unchecked((byte)(length % 16));
-            bool needsPadding = padding != 0;
+            using (var encryptor = _aes.CreateEncryptor())
+            {
+                var data = encryptor.TransformFinalBlock(inputData, offset, length);
+                int responseLength = Math.Max(data.Length, length);
 
-            byte[] data = new byte[length + padding];
-            Array.Copy(inputData, offset, data, 0, length);
-
-            for (int idx = 0; idx < padding; idx++)
-                data[length + idx] = padding;
-
-            // for (int idx = 0; idx < data.Length; idx += 16)
-            //    _aes.ProcessBlock(data, idx, outputData, offset + idx);
+                Array.Copy(data, outputData, Math.Max(data.Length, length));
+                return responseLength;
+            }
         }
 
         /// <summary>
@@ -808,12 +1042,9 @@ namespace PdfSharp.Pdf.Security
             objectId[3] = (byte)id.GenerationNumber;
             objectId[4] = (byte)(id.GenerationNumber >> 8);
 
-            byte[] encryptionKeyWithSalt = new byte[_encryptionKey.Length + 4];
-            Array.Copy(_encryptionKey, 0, encryptionKeyWithSalt, 0, _encryptionKey.Length);
-            Array.Copy(KeySalt, 0, encryptionKeyWithSalt, _encryptionKey.Length, KeySalt.Length);
-
-            _md5.TransformBlock(encryptionKeyWithSalt, 0, encryptionKeyWithSalt.Length, encryptionKeyWithSalt, 0);
-            _md5.TransformFinalBlock(objectId, 0, objectId.Length);
+            _md5.TransformBlock(_encryptionKey, 0, _encryptionKey.Length, _encryptionKey, 0);
+            _md5.TransformBlock(objectId, 0, objectId.Length, objectId, 0);
+            _md5.TransformFinalBlock(KeySalt, 0, KeySalt.Length);
             _key = _md5.Hash;
             _md5.Initialize();
             _keySize = _encryptionKey.Length + 5;
@@ -846,7 +1077,9 @@ namespace PdfSharp.Pdf.Security
 
             // Use user password twice if no owner password provided.
             if (string.IsNullOrEmpty(_ownerPassword))
+            {
                 _ownerPassword = _userPassword;
+            }
 
             // Correct permission bits
             permissions |= unchecked((int)0xfffff0c0);
@@ -880,7 +1113,7 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// The global encryption key.
         /// </summary>
-        byte[] _encryptionKey;
+        internal byte[] _encryptionKey;
 
 #if !SILVERLIGHT && !UWP
         /// <summary>
@@ -916,7 +1149,7 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// The encryption key for a particular object/generation.
         /// </summary>
-        byte[] _key;
+        internal byte[] _key;
 
         /// <summary>
         /// The encryption key length for a particular object/generation.

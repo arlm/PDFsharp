@@ -162,6 +162,8 @@ namespace PdfSharp.Pdf.Advanced
                         _securityHandler = new PdfStandardSecurityHandler(encrypt);
                     else if (PdfAESV2SecurityHandler.CanHandle(encrypt))
                         _securityHandler = new PdfAESV2SecurityHandler(encrypt);
+                    else if (PdfAESV3SecurityHandler.CanHandle(encrypt))
+                        _securityHandler = new PdfAESV3SecurityHandler(encrypt);
                 }
 
                 return _securityHandler;

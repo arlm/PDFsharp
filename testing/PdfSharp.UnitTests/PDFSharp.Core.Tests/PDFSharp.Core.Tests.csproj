@@ -46,6 +46,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CryptoStreamTest.cs" />
     <Compile Include="CryptoTests.cs" />
     <Compile Include="SecurityTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -40,6 +40,7 @@ using PdfSharp.Pdf.Filters;
 using PdfSharp.Pdf.Advanced;
 using PdfSharp.Pdf.Internal;
 using PdfSharp.SharpZipLib;
+using PdfSharp.Pdf.Security;
 
 namespace PdfSharp.Pdf
 {
@@ -1707,27 +1708,80 @@ namespace PdfSharp.Pdf
                 get
                 {
                     byte[] bytes = null;
+
                     if (_value != null)
                     {
                         PdfItem filter = _ownerDictionary.Elements["/Filter"];
+                        PdfName type = _ownerDictionary.Elements["/Type"] as PdfName;
+
                         if (filter != null)
                         {
                             bytes = Filtering.Decode(_value, filter);
+
                             if (bytes == null)
                             {
                                 string message = String.Format("«Cannot decode filter '{0}'»", filter);
                                 bytes = PdfEncoders.RawEncoding.GetBytes(message);
                             }
+
+                            return bytes ?? new byte[0];
                         }
-                        else
+
+                        if (type != null && type.Value == "/Metadata")
                         {
-                            bytes = new byte[_value.Length];
-                            _value.CopyTo(bytes, 0);
+                            return PdfEncoders.RawEncoding.GetBytes("«Cannot decode metadata»");
+
+                            if (_ownerDictionary._document.SecurityHandler is PdfAESV2SecurityHandler)
+                            {
+                                PdfAESV2SecurityHandler securityHandler = _ownerDictionary._document.SecurityHandler as PdfAESV2SecurityHandler;
+
+                                if (securityHandler.EncryptMetadata)
+                                {
+                                    bytes = new byte[_value.Length];
+
+                                    byte[] iv = new byte[16];
+                                    Array.Copy(_value, 0, iv, 0, 16);
+
+                                    securityHandler.SetHashKey(_ownerDictionary.ObjectID);
+                                    securityHandler.PrepareAESKey();
+                                    securityHandler.PrepareAESIV(iv);
+                                    securityHandler.DecryptAES(_value, 16, _value.Length - 16, bytes);
+
+                                    return bytes ?? new byte[0];
+                                }
+                            }
+
+                            if (_ownerDictionary._document.SecurityHandler is PdfAESV3SecurityHandler)
+                            {
+                                return PdfEncoders.RawEncoding.GetBytes("«Cannot decode metadata»");
+
+                                PdfAESV3SecurityHandler securityHandler = _ownerDictionary._document.SecurityHandler as PdfAESV3SecurityHandler;
+
+                                if (securityHandler.EncryptMetadata)
+                                {
+                                    bytes = new byte[_value.Length];
+
+                                    byte[] iv = new byte[16];
+                                    Array.Copy(_value, 0, iv, 0, 16);
+
+                                    securityHandler.SetHashKey(_ownerDictionary.ObjectID);
+                                    securityHandler.PrepareAESKey();
+                                    securityHandler.PrepareAESIV(iv);
+                                    securityHandler.DecryptAES(_value, 16, _value.Length - 16, bytes);
+
+                                    return bytes ?? new byte[0];
+                                }
+                            }
                         }
+
+                        bytes = new byte[_value.Length];
+                        _value.CopyTo(bytes, 0);
                     }
+
                     return bytes ?? new byte[0];
                 }
             }
+
 
             /// <summary>
             /// Tries to unfilter the bytes of the stream. If the stream is filtered and PDFsharp knows the filter
@@ -1754,7 +1808,7 @@ namespace PdfSharp.Pdf
 #if DEBUG
                             string[] strValue = new string[_value.Length];
 
-                            for(int index = 0; index < _value.Length; index++)
+                            for (int index = 0; index < _value.Length; index++)
                             {
                                 strValue[index] = _value[index].ToString("X2");
                             }
@@ -1924,8 +1978,8 @@ namespace PdfSharp.Pdf
             get
             {
 #if true
-                return String.Format(CultureInfo.InvariantCulture, "dictionary({0},[{1}])={2}", 
-                    ObjectID.DebuggerDisplay, 
+                return String.Format(CultureInfo.InvariantCulture, "dictionary({0},[{1}])={2}",
+                    ObjectID.DebuggerDisplay,
                     Elements.Count,
                     _elements.DebuggerDisplay);
 #else
