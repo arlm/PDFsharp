@@ -439,6 +439,7 @@ namespace PdfSharp.Pdf.Security
             byte[] uValue = PdfEncoders.RawEncoding.GetBytes(Elements.GetString(Keys.U));
             byte[] oeValue = PdfEncoders.RawEncoding.GetBytes(Elements.GetString(Keys.OE));
             byte[] ueValue = PdfEncoders.RawEncoding.GetBytes(Elements.GetString(Keys.UE));
+            byte[] permsValue = PdfEncoders.RawEncoding.GetBytes(Elements.GetString(Keys.Perms));
             int pValue = Elements.GetInteger(Keys.P);
             int rValue = Elements.GetInteger(Keys.R);
             int vValue = Elements.GetInteger(PdfSecurityHandler.Keys.V);
@@ -474,21 +475,33 @@ namespace PdfSharp.Pdf.Security
             }
 
             // Try owner password first.
-            InitWithOwnerPassword(documentID, inputPassword, inputPassword, ownerData, uValue, pValue, isV4, rValue, _encryptMetadata, ownerKeySalt, oeValue, userKeySalt, ueValue);
+            InitWithOwnerPassword(inputPassword, inputPassword, uValue, rValue, _encryptMetadata, ownerKeySalt, oeValue, userKeySalt, ueValue);
 
             PasswordValidity result = CheckOwnerPassword(inputPassword, ownerValidationSalt, uValue, oValue, rValue);
             _document.SecuritySettings._hasOwnerPermissions = result == PasswordValidity.OwnerPassword;
 
             if (result == PasswordValidity.OwnerPassword)
             {
-                return result;
+                if (CheckPerms(pValue, permsValue, _encryptionKey, _encryptMetadata))
+                {
+                    return result;
+                }
             }
 
             // Now try user password.
-            //password = PdfEncoders.RawEncoding.GetBytes(inputPassword);
-            InitWithUserPassword(documentID, inputPassword, ownerData, pValue, isV4, rValue, _encryptMetadata, userKeySalt, ueValue);
+            InitWithUserPassword(inputPassword, rValue, _encryptMetadata, userKeySalt, ueValue);
 
-            return CheckUserPassword(inputPassword, userValidationSalt, uValue, rValue);
+            result = CheckUserPassword(inputPassword, userValidationSalt, uValue, rValue);
+
+            if (result == PasswordValidity.UserPassword)
+            {
+                if (CheckPerms(pValue, permsValue, _encryptionKey, _encryptMetadata))
+                {
+                    return result;
+                }
+            }
+
+            return PasswordValidity.Invalid;
         }
 
         internal PasswordValidity CheckUserPassword(string password, byte[] userValidationSalt, byte[] uValue, int rValue)
@@ -510,7 +523,7 @@ namespace PdfSharp.Pdf.Security
                 _sha256.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
                 _sha256.TransformFinalBlock(userValidationSalt, 0, userValidationSalt.Length);
 
-                result = ComputePDF20Hash(passwordBytes, _sha256.Hash, new byte[] { });
+                result = ComputePDF20Hash(passwordBytes, _sha256.Hash, null);
             }
 
             if (EqualsKey(uValue, result, 32))
@@ -532,7 +545,7 @@ namespace PdfSharp.Pdf.Security
             {
                 _sha256.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
                 _sha256.TransformBlock(ownerValidationSalt, 0, ownerValidationSalt.Length, ownerValidationSalt, 0);
-                _sha256.TransformFinalBlock(uValue, 0, uValue.Length);
+                _sha256.TransformFinalBlock(uValue, 0, 48);
 
                 result = _sha256.Hash;
             }
@@ -540,7 +553,7 @@ namespace PdfSharp.Pdf.Security
             {
                 _sha256.TransformBlock(passwordBytes, 0, passwordBytes.Length, passwordBytes, 0);
                 _sha256.TransformBlock(ownerValidationSalt, 0, ownerValidationSalt.Length, ownerValidationSalt, 0);
-                _sha256.TransformFinalBlock(uValue, 0, uValue.Length);
+                _sha256.TransformFinalBlock(uValue, 0, 48);
 
                 result = ComputePDF20Hash(passwordBytes, _sha256.Hash, uValue);
             }
@@ -553,7 +566,44 @@ namespace PdfSharp.Pdf.Security
             return PasswordValidity.Invalid;
         }
 
-        private byte[] ComputePDF20Hash(byte[] passwordBytes, byte[] input, byte[] userBytes)
+        internal bool CheckPerms(int permissions, byte[] permsValue, byte[] encryptionKey, bool encryptMetadata)
+        {
+            byte[] permission = new byte[16];
+
+            PrepareAESKey(encryptionKey);
+            PrepareAESIV(null);
+            _aes.Padding = PaddingMode.None;
+
+            DecryptAES(permsValue, permission);
+
+            if (permission[9] != 97 /* 'a */ ||
+                permission[10] != 100 /* 'd' */ ||
+                permission[11] != 98 /* 'b' */)
+            {
+                return false;
+            }
+
+            byte encryptMetadataByte = (byte)(encryptMetadata ? 0x54 /* 'T' */ : 0x46 /* 'F' */);
+
+            if (permission[8] != encryptMetadataByte)
+            {
+                return false;
+            }
+
+            int p = permission[0] & 0xFF |
+                    permission[1] << 8 |
+                    permission[2] << 16 |
+                    permission[3] << 24;
+
+            if (p != permissions)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private byte[] ComputePDF20Hash(byte[] passwordBytes, byte[] input, byte[] uValue)
         {
             byte[] result;
             byte[] k = new byte[32];
@@ -567,31 +617,30 @@ namespace PdfSharp.Pdf.Security
             sha512.Initialize();
 
             byte[] e = null;
-            int i = 0;
+            int round = 0;
 
-            while (i < 64 || e[e.Length - 1] > (i - 32))
+            while (round < 64 || e[e.Length - 1] > (round - 32))
             {
-                int arrayLength = passwordBytes.Length + k.Length + userBytes.Length;
+                int arrayLength = passwordBytes.Length + k.Length + (uValue == null ? 0 : 48);
                 byte[] k1 = new byte[arrayLength * 64];
-                byte[] array = new byte[arrayLength];
 
-                Array.Copy(passwordBytes, 0, array, 0, passwordBytes.Length);
-                Array.Copy(k, 0, array, passwordBytes.Length, k.Length);
-                Array.Copy(userBytes, 0, array, passwordBytes.Length + k.Length, userBytes.Length);
-
-                for (int index = 0, pos = 0; index < 64; index++, pos += arrayLength)
+                for (int index = 0, pos = 0; index < 64; index++)
                 {
-                    Array.Copy(array, 0, k1, pos, array.Length);
+                    Array.Copy(passwordBytes, 0, k1, pos, passwordBytes.Length);
+                    pos += passwordBytes.Length;
+
+                    Array.Copy(k, 0, k1, pos, k.Length);
+                    pos += k.Length;
+
+                    if (uValue != null && uValue.Length >= 48)
+                    {
+                        Array.Copy(uValue, 0, k1, pos, 48);
+                        pos += 48;
+                    }
                 }
 
-                byte[] iv = new byte[16];
-                byte[] key = new byte[16];
-
-                Array.Copy(k, 0, key, 0, 16);
-                Array.Copy(k, 16, iv, 0, 16);
-
-                PrepareAESKey(key, keySize: 128);
-                PrepareAESIV(iv);
+                PrepareAESKey(k, 0, 16, keySize: 128);
+                PrepareAESIV(k, 16, 16);
                 _aes.Padding = PaddingMode.None;
 
                 e = new byte[k1.Length];
@@ -601,11 +650,10 @@ namespace PdfSharp.Pdf.Security
 
                 for (int index = 0; index < 16; index++)
                 {
-                    remainder *= (256 % 3);
-                    remainder %= 3;
-                    remainder += ((e[index] >> 0) % 3);
-                    remainder %= 3;
+                    remainder += e[index];
                 }
+
+                remainder %= 3;
 
                 if (remainder == 0)
                 {
@@ -620,7 +668,7 @@ namespace PdfSharp.Pdf.Security
                     k = sha512.ComputeHash(e, 0, e.Length);
                 }
 
-                i++;
+                round++;
             }
 
             result = new byte[32];
@@ -670,7 +718,7 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// Generates the user key based on the padded user password.
         /// </summary>
-        internal void InitWithUserPassword(byte[] documentID, string userPassword, byte[] oValue, int permissions, bool isV4, int rValue, bool encryptMetadata, byte[] userKeysalt, byte[] userEncryption)
+        internal void InitWithUserPassword(string userPassword, int rValue, bool encryptMetadata, byte[] userKeysalt, byte[] userEncryption)
         {
             _encryptionKey = SetupUserKey(userPassword, userKeysalt, userEncryption, rValue);
             _userKey = _encryptionKey;
@@ -679,7 +727,7 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// Generates the user key based on the padded owner password.
         /// </summary>
-        internal void InitWithOwnerPassword(byte[] documentID, string userPassword, string ownerPassword, byte[] oValue, byte[] uValue, int permissions, bool isV4, int rValue, bool encryptMetadata, byte[] ownerKeysalt, byte[] ownerEncryption, byte[] userKeysalt, byte[] userEncryption)
+        internal void InitWithOwnerPassword(string userPassword, string ownerPassword, byte[] uValue, int rValue, bool encryptMetadata, byte[] ownerKeysalt, byte[] ownerEncryption, byte[] userKeysalt, byte[] userEncryption)
         {
             if (string.IsNullOrEmpty(ownerPassword))
             {
@@ -721,12 +769,11 @@ namespace PdfSharp.Pdf.Security
             PrepareAESIV(null);
             _aes.Padding = PaddingMode.None;
             DecryptAES(ownerEncryption, userKey);
-            
+
             return userKey;
             //#endif
 #endif
         }
-
 
         /// <summary>
         /// Computes the user key.
@@ -748,7 +795,7 @@ namespace PdfSharp.Pdf.Security
             }
             else
             {
-                key = ComputePDF20Hash(passwordBytes, _sha256.Hash, new byte[] { });
+                key = ComputePDF20Hash(passwordBytes, _sha256.Hash, null);
             }
 
             byte[] userKey = new byte[userEncryption.Length];
@@ -761,6 +808,41 @@ namespace PdfSharp.Pdf.Security
             return userKey;
             //#endif
 #endif
+        }
+
+        internal byte[] SetupPerms(int permissions, bool encryptMetadata, byte[] encryptionKey, byte[] randomData = null)
+        {
+            byte[] permission = new byte[16];
+            permission[0] = (byte)(permissions);
+            permission[1] = (byte)(permissions >> 8);
+            permission[2] = (byte)(permissions >> 16);
+            permission[3] = (byte)(permissions >> 24);
+            permission[4] = 0xFF;
+            permission[5] = 0xFF;
+            permission[6] = 0xFF;
+            permission[7] = 0xFF;
+            permission[8] = (byte)(encryptMetadata ? 0x54 /* 'T' */ : 0x46 /* 'F' */);
+            permission[9] = 97;     // 'a
+            permission[10] = 100;   // 'd'
+            permission[11] = 98;    // 'b'
+
+            if (randomData == null)
+            {
+                randomData = new byte[4];
+
+                RNGCryptoServiceProvider rngCsp = new RNGCryptoServiceProvider();
+                rngCsp.GetBytes(randomData);
+            }
+
+            Array.Copy(randomData, 0, permission, 12, 4);
+
+            PrepareAESKey(encryptionKey);
+            PrepareAESIV(null);
+            _aes.Padding = PaddingMode.None;
+
+            EncryptAES(permission);
+
+            return permission;
         }
 
         /// <summary>
@@ -1000,7 +1082,7 @@ namespace PdfSharp.Pdf.Security
 
             bool isV4 = vValue.Value >= 4;
             rValue = new PdfInteger(5);
-            InitWithUserPassword(documentID, _userPassword, _ownerKey, permissions, isV4, vValue.Value, true, new byte[] { }, new byte[] { });
+            InitWithUserPassword(_userPassword, vValue.Value, true, new byte[] { }, new byte[] { });
 
             PdfString oValue = new PdfString(PdfEncoders.RawEncoding.GetString(_ownerKey, 0, _ownerKey.Length));
             PdfString uValue = new PdfString(PdfEncoders.RawEncoding.GetString(_userKey, 0, _userKey.Length));

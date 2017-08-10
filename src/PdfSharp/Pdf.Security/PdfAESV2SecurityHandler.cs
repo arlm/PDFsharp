@@ -463,7 +463,6 @@ namespace PdfSharp.Pdf.Security
             }
 
             // Now try user password.
-            //password = PdfEncoders.RawEncoding.GetBytes(inputPassword);
             InitWithUserPassword(documentID, inputPassword, oValue, pValue, _encryptMetadata);
 
             return CheckUserPassword(_userKey, uValue);

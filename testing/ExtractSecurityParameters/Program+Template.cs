@@ -13,7 +13,7 @@ public class TestSuite
         dict.Elements.Add(PdfSecurityHandler.Keys.V, new PdfInteger({0}));
         dict.Elements.Add(PdfSecurityHandler.Keys.Length, new PdfInteger({1}));
         dict.Elements.Add(PdfStandardSecurityHandler.Keys.R, new PdfInteger({2}));
-        dict.Elements.Add(PdfStandardSecurityHandler.Keys.P, new PdfInteger(0x{3:X8}));
+        dict.Elements.Add(PdfStandardSecurityHandler.Keys.P, new PdfInteger({3})); // 0x{3:X8}
         dict.Elements.Add(PdfStandardSecurityHandler.Keys.EncryptMetadata, new PdfBoolean({4}));
         dict.Elements.Add(PdfStandardSecurityHandler.Keys.O, new PdfString(""{5}"", PdfStringEncoding.RawEncoding));
         dict.Elements.Add(PdfStandardSecurityHandler.Keys.U, new PdfString(""{6}"", PdfStringEncoding.RawEncoding));

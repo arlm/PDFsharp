@@ -12,14 +12,14 @@ namespace PDFSharp.Core.Tests
         {
             var aesV2Security = new PdfAESV2SecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("0123456789abcdef");
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("0123456789abcdef");
             byte[] result = new byte[input.Length];
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
             aesV2Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("75b7878099e0c596");
+            var expected = Hex2binary("75b7878099e0c596");
             Assert.AreEqual(expected, result);
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
@@ -34,14 +34,14 @@ namespace PDFSharp.Core.Tests
         {
             var aesV2Security = new PdfAESV2SecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("0000000000000000");
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("0000000000000000");
             byte[] result = new byte[input.Length];
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
             aesV2Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("7494c2e7104b0879");
+            var expected = Hex2binary("7494c2e7104b0879");
             Assert.AreEqual(expected, result);
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
@@ -55,14 +55,14 @@ namespace PDFSharp.Core.Tests
         {
             var aesV2Security = new PdfAESV2SecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0000000000000000");
-            var input = hex2binary("0000000000000000");
+            var key = Hex2binary("0000000000000000");
+            var input = Hex2binary("0000000000000000");
             byte[] result = new byte[input.Length];
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
             aesV2Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("de188941a3375d3a");
+            var expected = Hex2binary("de188941a3375d3a");
             Assert.AreEqual(expected, result);
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
@@ -76,14 +76,14 @@ namespace PDFSharp.Core.Tests
         {
             var aesV2Security = new PdfAESV2SecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("ef012345");
-            var input = hex2binary("00000000000000000000");
+            var key = Hex2binary("ef012345");
+            var input = Hex2binary("00000000000000000000");
             byte[] result = new byte[input.Length];
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
             aesV2Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("d6a141a7ec3c38dfbd61");
+            var expected = Hex2binary("d6a141a7ec3c38dfbd61");
             Assert.AreEqual(expected, result);
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
@@ -97,8 +97,8 @@ namespace PDFSharp.Core.Tests
         {
             var aesV2Security = new PdfAESV2SecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("010101010101010101010101010101010101010101010101010" +
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("010101010101010101010101010101010101010101010101010" +
                 "10101010101010101010101010101010101010101010101010101010101010101010" +
                 "10101010101010101010101010101010101010101010101010101010101010101010" +
                 "10101010101010101010101010101010101010101010101010101010101010101010" +
@@ -119,7 +119,7 @@ namespace PDFSharp.Core.Tests
             aesV2Security.PrepareRC4Key(key, length: key.Length);
             aesV2Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("7595c3e6114a09780c4ad452338e1ffd9a1be9498f813d76" +
+            var expected = Hex2binary("7595c3e6114a09780c4ad452338e1ffd9a1be9498f813d76" +
                 "533449b6778dcad8c78a8d2ba9ac66085d0e53d59c26c2d1c490c1ebbe0ce66d1b6b" +
                 "1b13b6b919b847c25a91447a95e75e4ef16779cde8bf0a95850e32af9689444fd377" +
                 "108f98fdcbd4e726567500990bcc7e0ca3c4aaa304a387d20f3b8fbbcd42a1bd311d" +
@@ -148,8 +148,8 @@ namespace PDFSharp.Core.Tests
         {
             var aesV2Security = new PdfAESV2SecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("fb029e3031323334");
-            var input = hex2binary("aaaa0300000008004500004e661a00008011be640a0001220a" +
+            var key = Hex2binary("fb029e3031323334");
+            var input = Hex2binary("aaaa0300000008004500004e661a00008011be640a0001220a" +
                 "ffffff00890089003a000080a601100001000000000000204543454a454845434643" +
                 "4550464545494546464343414341434143414341414100002000011bd0b604");
             byte[] result = new byte[input.Length];
@@ -157,7 +157,7 @@ namespace PDFSharp.Core.Tests
             aesV2Security.PrepareRC4Key(key, length: key.Length);
             aesV2Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("f69c5806bd6ce84626bcbefb9474650aad1f7909b0f64d5" +
+            var expected = Hex2binary("f69c5806bd6ce84626bcbefb9474650aad1f7909b0f64d5" +
                 "f58a503a258b7ed22eb0ea64930d3a056a55742fcce141d485f8aa836dea18df42c5" +
                 "380805ad0c61a5d6f58f41040b24b7d1a693856ed0d4398e7aee3bf0e2a2ca8f7");
             Assert.AreEqual(expected, result);
@@ -173,14 +173,14 @@ namespace PDFSharp.Core.Tests
         {
             var aesV2Security = new PdfAESV2SecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("123456789abcdef0123456789abcdef0123456789abcdef012345678");
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("123456789abcdef0123456789abcdef0123456789abcdef012345678");
             byte[] result = new byte[input.Length];
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
             aesV2Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("66a0949f8af7d6891f7f832ba833c00c892ebe30143ce28740011ecf");
+            var expected = Hex2binary("66a0949f8af7d6891f7f832ba833c00c892ebe30143ce28740011ecf");
             Assert.AreEqual(expected, result);
 
             aesV2Security.PrepareRC4Key(key, length: key.Length);
@@ -194,14 +194,14 @@ namespace PDFSharp.Core.Tests
         {
             var rc4Security = new PdfStandardSecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("0123456789abcdef");
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("0123456789abcdef");
             byte[] result = new byte[input.Length];
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
             rc4Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("75b7878099e0c596");
+            var expected = Hex2binary("75b7878099e0c596");
             Assert.AreEqual(expected, result);
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
@@ -216,14 +216,14 @@ namespace PDFSharp.Core.Tests
         {
             var rc4Security = new PdfStandardSecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("0000000000000000");
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("0000000000000000");
             byte[] result = new byte[input.Length];
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
             rc4Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("7494c2e7104b0879");
+            var expected = Hex2binary("7494c2e7104b0879");
             Assert.AreEqual(expected, result);
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
@@ -237,14 +237,14 @@ namespace PDFSharp.Core.Tests
         {
             var rc4Security = new PdfStandardSecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0000000000000000");
-            var input = hex2binary("0000000000000000");
+            var key = Hex2binary("0000000000000000");
+            var input = Hex2binary("0000000000000000");
             byte[] result = new byte[input.Length];
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
             rc4Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("de188941a3375d3a");
+            var expected = Hex2binary("de188941a3375d3a");
             Assert.AreEqual(expected, result);
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
@@ -258,14 +258,14 @@ namespace PDFSharp.Core.Tests
         {
             var rc4Security = new PdfStandardSecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("ef012345");
-            var input = hex2binary("00000000000000000000");
+            var key = Hex2binary("ef012345");
+            var input = Hex2binary("00000000000000000000");
             byte[] result = new byte[input.Length];
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
             rc4Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("d6a141a7ec3c38dfbd61");
+            var expected = Hex2binary("d6a141a7ec3c38dfbd61");
             Assert.AreEqual(expected, result);
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
@@ -279,8 +279,8 @@ namespace PDFSharp.Core.Tests
         {
             var rc4Security = new PdfStandardSecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("010101010101010101010101010101010101010101010101010" +
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("010101010101010101010101010101010101010101010101010" +
                 "10101010101010101010101010101010101010101010101010101010101010101010" +
                 "10101010101010101010101010101010101010101010101010101010101010101010" +
                 "10101010101010101010101010101010101010101010101010101010101010101010" +
@@ -301,7 +301,7 @@ namespace PDFSharp.Core.Tests
             rc4Security.PrepareRC4Key(key, length: key.Length);
             rc4Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("7595c3e6114a09780c4ad452338e1ffd9a1be9498f813d76" +
+            var expected = Hex2binary("7595c3e6114a09780c4ad452338e1ffd9a1be9498f813d76" +
                 "533449b6778dcad8c78a8d2ba9ac66085d0e53d59c26c2d1c490c1ebbe0ce66d1b6b" +
                 "1b13b6b919b847c25a91447a95e75e4ef16779cde8bf0a95850e32af9689444fd377" +
                 "108f98fdcbd4e726567500990bcc7e0ca3c4aaa304a387d20f3b8fbbcd42a1bd311d" +
@@ -330,8 +330,8 @@ namespace PDFSharp.Core.Tests
         {
             var rc4Security = new PdfStandardSecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("fb029e3031323334");
-            var input = hex2binary("aaaa0300000008004500004e661a00008011be640a0001220a" +
+            var key = Hex2binary("fb029e3031323334");
+            var input = Hex2binary("aaaa0300000008004500004e661a00008011be640a0001220a" +
                 "ffffff00890089003a000080a601100001000000000000204543454a454845434643" +
                 "4550464545494546464343414341434143414341414100002000011bd0b604");
             byte[] result = new byte[input.Length];
@@ -339,7 +339,7 @@ namespace PDFSharp.Core.Tests
             rc4Security.PrepareRC4Key(key, length: key.Length);
             rc4Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("f69c5806bd6ce84626bcbefb9474650aad1f7909b0f64d5" +
+            var expected = Hex2binary("f69c5806bd6ce84626bcbefb9474650aad1f7909b0f64d5" +
                 "f58a503a258b7ed22eb0ea64930d3a056a55742fcce141d485f8aa836dea18df42c5" +
                 "380805ad0c61a5d6f58f41040b24b7d1a693856ed0d4398e7aee3bf0e2a2ca8f7");
             Assert.AreEqual(expected, result);
@@ -355,14 +355,14 @@ namespace PDFSharp.Core.Tests
         {
             var rc4Security = new PdfStandardSecurityHandler(new PdfDictionary());
 
-            var key = hex2binary("0123456789abcdef");
-            var input = hex2binary("123456789abcdef0123456789abcdef0123456789abcdef012345678");
+            var key = Hex2binary("0123456789abcdef");
+            var input = Hex2binary("123456789abcdef0123456789abcdef0123456789abcdef012345678");
             byte[] result = new byte[input.Length];
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
             rc4Security.EncryptRC4(input, result);
 
-            var expected = hex2binary("66a0949f8af7d6891f7f832ba833c00c892ebe30143ce28740011ecf");
+            var expected = Hex2binary("66a0949f8af7d6891f7f832ba833c00c892ebe30143ce28740011ecf");
             Assert.AreEqual(expected, result);
 
             rc4Security.PrepareRC4Key(key, length: key.Length);
@@ -371,7 +371,7 @@ namespace PDFSharp.Core.Tests
             Assert.AreEqual(input, result);
         }
 
-        private byte[] hex2binary(string value)
+        private byte[] Hex2binary(string value)
         {
             const string digits = "0123456789ABCDEF";
 
