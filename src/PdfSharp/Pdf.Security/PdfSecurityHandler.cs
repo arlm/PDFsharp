@@ -29,6 +29,7 @@
 
 // ReSharper disable InconsistentNaming
 
+using PdfSharp.Pdf.Advanced;
 using PdfSharp.Pdf.IO;
 
 namespace PdfSharp.Pdf.Security
@@ -62,7 +63,7 @@ namespace PdfSharp.Pdf.Security
 
         public abstract void EncryptDocument();
 
-        public abstract void DecryptDocument();
+        public abstract void DecryptDocument(PdfReference xrefEncrypt);
 
         public abstract byte[] EncryptBytes(byte[] bytes);
 

@@ -451,7 +451,7 @@ namespace PdfSharp.Pdf.IO
                 // Encrypt all objects.
                 if (xrefEncrypt != null)
                 {
-                    document.SecurityHandler.DecryptDocument();
+                    document.SecurityHandler.DecryptDocument(xrefEncrypt);
                 }
 
                 // Fix references of trailer values and then objects and irefs are consistent.

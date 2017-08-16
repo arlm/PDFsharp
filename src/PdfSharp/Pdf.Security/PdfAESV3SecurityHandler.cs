@@ -85,7 +85,7 @@ namespace PdfSharp.Pdf.Security
             set
             {
                 if (_document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.None)
-                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.Encrypted128Bit;
+                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.AES_V3;
                 _userPassword = value;
             }
         }
@@ -106,7 +106,7 @@ namespace PdfSharp.Pdf.Security
             set
             {
                 if (_document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.None)
-                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.Encrypted128Bit;
+                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.AES_V3;
                 _ownerPassword = value;
             }
         }
@@ -142,12 +142,14 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// Decrypts the whole document.
         /// </summary>
-        public override void DecryptDocument()
+        public override void DecryptDocument(PdfReference xrefEncrypt)
         {
             foreach (PdfReference iref in _document._irefTable.AllReferences)
             {
                 if (!ReferenceEquals(iref.Value, this))
-                    DecryptObject(iref.Value);
+                {
+                    DecryptObject(iref.Value, xrefEncrypt);
+                }
             }
         }
 
@@ -186,37 +188,63 @@ namespace PdfSharp.Pdf.Security
         /// <summary>
         /// Decrypts an indirect object.
         /// </summary>
-        internal void DecryptObject(PdfObject value)
+        internal void DecryptObject(PdfObject value, PdfReference xrefEncrypt)
         {
             Debug.Assert(value.Reference != null);
 
             SetHashKey(value.ObjectID);
 #if DEBUG
+            Debug.WriteLine($">>> Decrypt object: {value.ObjectID} with {_keySize}-bit key");
+            DumpBytes("key", _key);
+
             if (value.ObjectID.ObjectNumber == 10)
                 GetType();
 #endif
 
-            PdfDictionary dict;
-            PdfArray array;
-            PdfStringObject str;
-            if ((dict = value as PdfDictionary) != null)
-                DecryptDictionary(dict);
-            else if ((array = value as PdfArray) != null)
-                DecryptArray(array);
-            else if ((str = value as PdfStringObject) != null)
+            try
             {
-                if (str.Length != 0)
+                PdfDictionary dict;
+                PdfArray array;
+                PdfStringObject str;
+                if ((dict = value as PdfDictionary) != null)
                 {
-                    byte[] bytes = str.EncryptionValue;
-                    PrepareAESKey();
-                    PrepareAESIV(bytes, 0, 16);
-                    int length = DecryptAES(bytes, 16, bytes.Length - 16);
-
-                    byte[] temp = new byte[length];
-                    Array.Copy(bytes, temp, length);
-
-                    str.EncryptionValue = temp;
+                    if (dict.ObjectID != xrefEncrypt?.ObjectID)
+                    {
+                        DecryptDictionary(dict);
+                    }
+#if DEBUG
+                    else
+                    {
+                        if (dict.ObjectID == xrefEncrypt?.ObjectID)
+                            Debug.WriteLine($">>> Skipping /Encrypt dictionary: {value.ObjectID} ...");
+                        else
+                            Debug.WriteLine($">>> Skipping Catalog (trailer) dictionary: {value.ObjectID} ...");
+                    }
+#endif
                 }
+                else if ((array = value as PdfArray) != null)
+                {
+                    DecryptArray(array);
+                }
+                else if ((str = value as PdfStringObject) != null)
+                {
+                    if (str.Length != 0)
+                    {
+                        byte[] bytes = str.EncryptionValue;
+                        PrepareAESKey();
+                        int length = DecryptAES(bytes, 0, bytes.Length);
+
+                        byte[] temp = new byte[length];
+                        Array.Copy(bytes, temp, length);
+
+                        str.EncryptionValue = temp;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($">>> Decrypt object error for {value.ObjectID}: {ex.Message}");
+                Debug.WriteLine(ex.StackTrace);
             }
         }
 
@@ -262,25 +290,45 @@ namespace PdfSharp.Pdf.Security
                 PdfDictionary value2;
                 PdfArray value3;
                 if ((value1 = item.Value as PdfString) != null)
-                    DecryptString(value1);
-                else if ((value2 = item.Value as PdfDictionary) != null)
-                    DecryptDictionary(value2);
-                else if ((value3 = item.Value as PdfArray) != null)
-                    DecryptArray(value3);
-            }
-            if (dict.Stream != null)
-            {
-                byte[] bytes = dict.Stream.Value;
-                if (bytes.Length != 0)
                 {
-                    PrepareAESKey();
-                    PrepareAESIV(bytes, 0, 16);
-                    int length = DecryptAES(bytes, 16, bytes.Length - 16);
+                    DecryptString(value1);
+                }
+                else if ((value2 = item.Value as PdfDictionary) != null)
+                {
+                    DecryptDictionary(value2);
+                }
+                else if ((value3 = item.Value as PdfArray) != null)
+                {
+                    if (dict.ObjectID == _document._trailer.ObjectID && item.Key == PdfTrailer.Keys.ID)
+                    {
+                        continue;
+                    }
 
-                    byte[] temp = new byte[length];
-                    Array.Copy(bytes, temp, length);
+                    DecryptArray(value3);
+                }
+            }
+            if (dict.Stream != null && dict.ObjectID != _document._trailer.ObjectID)
+            {
+                PdfObjectStream objStream = dict as PdfObjectStream;
 
-                    dict.Stream.Value = temp;
+                if (!(objStream?._decrypted ?? false))
+                {
+                    byte[] bytes = dict.Stream.Value;
+                    if (bytes.Length != 0)
+                    {
+                        PrepareAESKey();
+                        int length = DecryptAES(bytes, 0, bytes.Length);
+
+                        byte[] temp = new byte[length];
+                        Array.Copy(bytes, temp, length);
+
+                        dict.Stream.Value = temp;
+                    }
+
+                    if (objStream != null)
+                    {
+                        objStream._decrypted = true;
+                    }
                 }
             }
         }
@@ -348,15 +396,25 @@ namespace PdfSharp.Pdf.Security
         {
             if (value.Length != 0)
             {
-                byte[] bytes = value.EncryptionValue;
-                PrepareAESKey();
-                PrepareAESIV(bytes, 0, 16);
-                int length = DecryptAES(bytes, 16, bytes.Length - 16);
+                try
+                {
+                    byte[] bytes = value.EncryptionValue;
+                    PrepareAESKey();
+                    int length = DecryptAES(bytes, 0, bytes.Length);
 
-                byte[] temp = new byte[length];
-                Array.Copy(bytes, temp, length);
+                    byte[] temp = new byte[length];
+                    Array.Copy(bytes, temp, length);
 
-                value.EncryptionValue = temp;
+                    value.EncryptionValue = temp;
+                }
+                catch (CryptographicException ex)
+                {
+#if DEBUG
+                    Debug.WriteLine($">>> Decrypt string error, trying without padding: {ex.Message}");
+                    DumpBytes("key", _key);
+                    DumpBytes("data", value.EncryptionValue);
+#endif
+                }
             }
         }
 
@@ -381,7 +439,7 @@ namespace PdfSharp.Pdf.Security
             if (bytes != null && bytes.Length != 0)
             {
                 PrepareAESKey();
-                int length = DecryptAES(bytes, 16, bytes.Length - 16);
+                int length = DecryptAES(bytes, 0, bytes.Length);
 
                 byte[] temp = new byte[length];
                 Array.Copy(bytes, temp, length);
@@ -1010,34 +1068,9 @@ namespace PdfSharp.Pdf.Security
         /// </summary>
         internal override void SetHashKey(PdfObjectID id)
         {
-#if !NETFX_CORE
-            //#if !SILVERLIGHT
-            byte[] objectId = new byte[5];
-            _md5.Initialize();
-            // Split the object number and generation
-            objectId[0] = (byte)id.ObjectNumber;
-            objectId[1] = (byte)(id.ObjectNumber >> 8);
-            objectId[2] = (byte)(id.ObjectNumber >> 16);
-            objectId[3] = (byte)id.GenerationNumber;
-            objectId[4] = (byte)(id.GenerationNumber >> 8);
-
-            _md5.TransformBlock(_encryptionKey, 0, _encryptionKey.Length, _encryptionKey, 0);
-            _md5.TransformBlock(objectId, 0, objectId.Length, objectId, 0);
-            _md5.TransformFinalBlock(KeySalt, 0, KeySalt.Length);
-
-            _key = _md5.Hash;
-            _md5.Initialize();
-            _keySize = _encryptionKey.Length + 5;
-            if (_keySize > 16)
-                _keySize = 16;
-            //#endif
-#endif
+            _key = _encryptionKey;
+            _keySize = _encryptionKey.Length;
         }
-
-        static readonly byte[] KeySalt = // 4 bytes salt for backward compatibility, not intended to provide additional security.
-            {
-              0x73, 0x41, 0x6C, 0x54
-            };
 
         /// <summary>
         /// Prepares the security handler for encrypting the document.

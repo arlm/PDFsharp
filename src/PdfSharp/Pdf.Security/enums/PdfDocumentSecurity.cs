@@ -40,14 +40,24 @@ namespace PdfSharp.Pdf.Security
         None,
 
         /// <summary>
-        /// Document is protected with 40-bit security. This option is for compatibility with 
-        /// Acrobat 3 and 4 only. Use Encrypted128Bit whenever possible.
+        /// Document is protected with RC4 security. This option is for compatibility with 
+        /// Acrobat 3 and 4 only. Use RC4_128Bit whenever possible.
         /// </summary>
-        Encrypted40Bit,
+        RC4_40bit,
 
         /// <summary>
-        /// Document is protected with 128-bit security.
+        /// Document is protected with AES 128-bit security.
         /// </summary>
-        Encrypted128Bit,
+        RC4_128Bit,
+
+        /// <summary>
+        /// Document is protected with AES 128-bit security.
+        /// </summary>
+        AES_V2,
+
+        /// <summary>
+        /// Document is protected with AES 256-bit security.
+        /// </summary>
+        AES_V3
     }
 }

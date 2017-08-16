@@ -71,7 +71,7 @@ namespace PdfSharp.Pdf.Security
             set
             {
                 if (_document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.None)
-                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.Encrypted128Bit;
+                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.RC4_128Bit;
                 _userPassword = value;
             }
         }
@@ -92,7 +92,7 @@ namespace PdfSharp.Pdf.Security
             set
             {
                 if (_document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.None)
-                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.Encrypted128Bit;
+                    _document._securitySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.RC4_128Bit;
                 _ownerPassword = value;
             }
         }
@@ -121,22 +121,30 @@ namespace PdfSharp.Pdf.Security
             foreach (PdfReference iref in _document._irefTable.AllReferences)
             {
                 if (!ReferenceEquals(iref.Value, this))
+                {
                     EncryptObject(iref.Value);
+                }
             }
         }
 
         /// <summary>
         /// Decrypts the whole document.
         /// </summary>
-        public override void DecryptDocument()
+        public override void DecryptDocument(PdfReference xrefEncrypt)
         {
-            EncryptDocument();
+            foreach (PdfReference iref in _document._irefTable.AllReferences)
+            {
+                if (!ReferenceEquals(iref.Value, this))
+                {
+                    EncryptObject(iref.Value, xrefEncrypt);
+                }
+            }
         }
 
         /// <summary>
         /// Encrypts an indirect object.
         /// </summary>
-        internal void EncryptObject(PdfObject value)
+        internal void EncryptObject(PdfObject value, PdfReference xrefEncrypt = null)
         {
             Debug.Assert(value.Reference != null);
 
@@ -150,9 +158,25 @@ namespace PdfSharp.Pdf.Security
             PdfArray array;
             PdfStringObject str;
             if ((dict = value as PdfDictionary) != null)
-                EncryptDictionary(dict);
+            {
+                if (dict.ObjectID != xrefEncrypt?.ObjectID)
+                {
+                    EncryptDictionary(dict);
+                }
+#if DEBUG
+                else
+                {
+                    if (dict.ObjectID == xrefEncrypt?.ObjectID)
+                        Debug.WriteLine($">>> Skipping /Encrypt dictionary: {value.ObjectID} ...");
+                    else
+                        Debug.WriteLine($">>> Skipping Catalog (trailer) dictionary: {value.ObjectID} ...");
+                }
+#endif
+            }
             else if ((array = value as PdfArray) != null)
+            {
                 EncryptArray(array);
+            }
             else if ((str = value as PdfStringObject) != null)
             {
                 if (str.Length != 0)
@@ -177,20 +201,41 @@ namespace PdfSharp.Pdf.Security
                 PdfDictionary value2;
                 PdfArray value3;
                 if ((value1 = item.Value as PdfString) != null)
-                    EncryptString(value1);
-                else if ((value2 = item.Value as PdfDictionary) != null)
-                    EncryptDictionary(value2);
-                else if ((value3 = item.Value as PdfArray) != null)
-                    EncryptArray(value3);
-            }
-            if (dict.Stream != null)
-            {
-                byte[] bytes = dict.Stream.Value;
-                if (bytes.Length != 0)
                 {
-                    PrepareRC4Key();
-                    EncryptRC4(bytes);
-                    dict.Stream.Value = bytes;
+                    EncryptString(value1);
+                }
+                else if ((value2 = item.Value as PdfDictionary) != null)
+                {
+                    EncryptDictionary(value2);
+                }
+                else if ((value3 = item.Value as PdfArray) != null)
+                {
+                    if (dict.ObjectID == _document._trailer.ObjectID && item.Key == PdfTrailer.Keys.ID)
+                    {
+                        continue;
+                    }
+
+                    EncryptArray(value3);
+                }
+            }
+            if (dict.Stream != null && dict.ObjectID != _document._trailer.ObjectID)
+            {
+                PdfObjectStream objStream = dict as PdfObjectStream;
+
+                if (!(objStream?._decrypted ?? false))
+                {
+                    byte[] bytes = dict.Stream.Value;
+                    if (bytes.Length != 0)
+                    {
+                        PrepareRC4Key();
+                        EncryptRC4(bytes);
+                        dict.Stream.Value = bytes;
+                    }
+
+                    if (objStream != null)
+                    {
+                        objStream._decrypted = true;
+                    }
                 }
             }
         }
@@ -286,6 +331,15 @@ namespace PdfSharp.Pdf.Security
                     return false;
             }
 
+            if (v < 4)
+            {
+                dict._document.SecuritySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.RC4_40bit;
+            }
+            else
+            {
+                dict._document.SecuritySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.RC4_128Bit;
+            }
+
             return true;
         }
 
@@ -319,6 +373,16 @@ namespace PdfSharp.Pdf.Security
             }
 
             bool strongEncryption = rValue >= 3;
+
+            if (strongEncryption)
+            {
+               _document.SecuritySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.RC4_128Bit;
+            }
+            else
+            {
+                _document.SecuritySettings.DocumentSecurityLevel = PdfDocumentSecurityLevel.RC4_40bit;
+            }
+
             int keyLength = Elements.GetInteger(PdfSecurityHandler.Keys.Length);
 
             if (keyLength == 0)
@@ -814,19 +878,26 @@ namespace PdfSharp.Pdf.Security
             //#if !SILVERLIGHT
             byte[] objectId = new byte[5];
             _md5.Initialize();
+
             // Split the object number and generation
             objectId[0] = (byte)id.ObjectNumber;
             objectId[1] = (byte)(id.ObjectNumber >> 8);
             objectId[2] = (byte)(id.ObjectNumber >> 16);
             objectId[3] = (byte)id.GenerationNumber;
             objectId[4] = (byte)(id.GenerationNumber >> 8);
+
             _md5.TransformBlock(_encryptionKey, 0, _encryptionKey.Length, _encryptionKey, 0);
             _md5.TransformFinalBlock(objectId, 0, objectId.Length);
             _key = _md5.Hash;
+
             _md5.Initialize();
+
             _keySize = _encryptionKey.Length + 5;
+
             if (_keySize > 16)
+            {
                 _keySize = 16;
+            }
             //#endif
 #endif
         }
@@ -839,7 +910,7 @@ namespace PdfSharp.Pdf.Security
             //#if !SILVERLIGHT
             Debug.Assert(_document._securitySettings.DocumentSecurityLevel != PdfDocumentSecurityLevel.None);
             int permissions = (int)Permission;
-            bool strongEncryption = _document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.Encrypted128Bit;
+            bool strongEncryption = _document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.RC4_128Bit;
 
             PdfInteger vValue;
             PdfInteger length;
