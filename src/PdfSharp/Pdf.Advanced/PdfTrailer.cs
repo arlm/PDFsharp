@@ -156,14 +156,21 @@ namespace PdfSharp.Pdf.Advanced
             {
                 if (_securityHandler == null)
                 {
-                    PdfDictionary encrypt = (PdfDictionary)Elements.GetValue(Keys.Encrypt, VCF.CreateIndirect);
+                    if (Elements.ContainsKey(Keys.Encrypt))
+                    {
+                        PdfDictionary encrypt = (PdfDictionary)Elements.GetValue(Keys.Encrypt, VCF.CreateIndirect);
 
-                    if (PdfStandardSecurityHandler.CanHandle(encrypt))
-                        _securityHandler = new PdfStandardSecurityHandler(encrypt);
-                    else if (PdfAESV2SecurityHandler.CanHandle(encrypt))
-                        _securityHandler = new PdfAESV2SecurityHandler(encrypt);
-                    else if (PdfAESV3SecurityHandler.CanHandle(encrypt))
-                        _securityHandler = new PdfAESV3SecurityHandler(encrypt);
+                        if (PdfStandardSecurityHandler.CanHandle(encrypt))
+                            _securityHandler = new PdfStandardSecurityHandler(encrypt);
+                        else if (PdfAESV2SecurityHandler.CanHandle(encrypt))
+                            _securityHandler = new PdfAESV2SecurityHandler(encrypt);
+                        else if (PdfAESV3SecurityHandler.CanHandle(encrypt))
+                            _securityHandler = new PdfAESV3SecurityHandler(encrypt);
+                        else
+                            _securityHandler = new PdfIdentitySecurityHandler(_document);
+                    }
+                    else
+                        _securityHandler = new PdfIdentitySecurityHandler(_document);
                 }
 
                 return _securityHandler;
