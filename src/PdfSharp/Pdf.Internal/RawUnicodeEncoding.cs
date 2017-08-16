@@ -54,6 +54,7 @@ namespace PdfSharp.Pdf.Internal
                 bytes[byteIndex++] = (byte)(ch >> 8);
                 bytes[byteIndex++] = (byte)ch;
             }
+
             return charCount * 2;
         }
 
@@ -68,6 +69,7 @@ namespace PdfSharp.Pdf.Internal
             {
                 chars[charIndex] = (char)((int)bytes[byteIndex] << 8 + (int)bytes[byteIndex + 1]);
             }
+
             return byteCount;
         }
 

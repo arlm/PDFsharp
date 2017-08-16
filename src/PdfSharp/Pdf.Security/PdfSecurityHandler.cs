@@ -112,7 +112,7 @@ namespace PdfSharp.Pdf.Security
             public const string StmF = "/StmF";
 
             /// <summary>
-            /// (Optional; meaningful only when the value of V is 4; PDF 1.)
+            /// (Optional; meaningful only when the value of V is 4; PDF 1.5)
             /// The name of the crypt filter that is used when decrypting all strings in the document.
             /// The name must be a key in the CF dictionary or a standard crypt filter name.
             /// Default value: Identity.

@@ -39,6 +39,7 @@ using PdfSharp.Pdf.IO;
 using PdfSharp.Pdf.Filters;
 using PdfSharp.Pdf.Advanced;
 using PdfSharp.Pdf.Internal;
+using PdfSharp.SharpZipLib;
 
 namespace PdfSharp.Pdf
 {
@@ -865,7 +866,11 @@ namespace PdfSharp.Pdf
 #endif
                             if (options == VCF.CreateIndirect)
                             {
-                                _ownerDictionary.Owner._irefTable.Add(obj);
+                                if (!_ownerDictionary.Owner._irefTable.Contains(obj.ObjectID))
+                                {
+                                    _ownerDictionary.Owner._irefTable.Add(obj);
+                                }
+
                                 this[key] = obj.Reference;
                             }
                             else
@@ -1741,8 +1746,27 @@ namespace PdfSharp.Pdf
                     PdfItem filter = _ownerDictionary.Elements["/Filter"];
                     if (filter != null)
                     {
+                        byte[] bytes = null;
+
                         // PDFsharp can only uncompress streams that are compressed with the ZIP or LZH algorithm.
-                        byte[] bytes = Filtering.Decode(_value, filter);
+                        try
+                        {
+                            bytes = Filtering.Decode(_value, filter);
+                        }
+                        catch (SharpZipBaseException)
+                        {
+#if DEBUG
+                            string[] strValue = new string[_value.Length];
+
+                            for(int index = 0; index < _value.Length; index++)
+                            {
+                                strValue[index] = _value[index].ToString("X2");
+                            }
+
+                            Debug.WriteLine("Warning: Stream could not be unfiltered: [" + string.Join(", ", strValue) + "]");
+#endif
+                        }
+
                         if (bytes != null)
                         {
                             _ownerDictionary.Elements.Remove(Keys.Filter);

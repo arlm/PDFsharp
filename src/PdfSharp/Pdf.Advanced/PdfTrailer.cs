@@ -192,8 +192,14 @@ namespace PdfSharp.Pdf.Advanced
             iref = _document._trailer.Elements[PdfTrailer.Keys.Info] as PdfReference;
             if (iref != null && iref.Value == null)
             {
-                iref = _document._irefTable[iref.ObjectID];
-                Debug.Assert(iref.Value != null);
+                PdfReference newIref = _document._irefTable[iref.ObjectID];
+
+                if (newIref != null)
+                {
+                    iref = newIref;
+                }
+
+                //Debug.Assert(iref != null && iref.Value != null);
                 _document._trailer.Elements[Keys.Info] = iref;
             }
 
