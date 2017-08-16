@@ -174,7 +174,7 @@ namespace PdfSharp.Pdf.Filters
             byte[] abResult = new byte[1024];
             do
             {
-                cbRead = zip.Read(abResult, 0, abResult.Length);
+                cbRead = zip.Read(abResult, 0, Math.Min(abResult.Length, unchecked((int) msInput.Length)));
                 if (cbRead > 0)
                     msOutput.Write(abResult, 0, cbRead);
             }

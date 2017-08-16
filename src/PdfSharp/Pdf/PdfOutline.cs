@@ -357,7 +357,15 @@ namespace PdfSharp.Pdf
             PdfArray destArray = null;
             if (dest != null)
             {
-                destArray = dest as PdfArray;
+                if (dest is PdfReference)
+                {
+                    destArray = (dest as PdfReference).Value as PdfArray;
+                }
+                else
+                {
+                    destArray = dest as PdfArray;
+                }
+
                 if (destArray != null)
                 {
                     SplitDestinationPage(destArray);
@@ -370,7 +378,16 @@ namespace PdfSharp.Pdf
             else if (a != null)
             {
                 // The dictionary should be a GoTo action.
-                PdfDictionary action = a as PdfDictionary;
+                PdfDictionary action;
+                if (dest is PdfReference)
+                {
+                    action = (a as PdfReference).Value as PdfDictionary;
+                }
+                else
+                {
+                    action = a as PdfDictionary;
+                }
+
                 if (action != null && action.Elements.GetName(PdfAction.Keys.S) == "/GoTo")
                 {
                     dest = action.Elements[PdfGoToAction.Keys.D];
@@ -420,9 +437,32 @@ namespace PdfSharp.Pdf
                 {
                     // [page /XYZ left top zoom]
                     case PdfPageDestinationType.Xyz:
-                        Left = destination.Elements.GetReal(2);
-                        Top = destination.Elements.GetReal(3);
-                        Zoom = destination.Elements.GetReal(4);
+                        if (destination.Elements.Count >= 3 && !(destination.Elements.Items[2] is PdfNull))
+                        {
+                            Left = destination.Elements.GetReal(2);
+                        }
+                        else
+                        {
+                            Left = -1.0;
+                        }
+
+                        if (destination.Elements.Count >= 4 && !(destination.Elements.Items[3] is PdfNull))
+                        {
+                            Top = destination.Elements.GetReal(3);
+                        }
+                        else
+                        {
+                            Top = -1.0;
+                        }
+
+                        if (destination.Elements.Count >= 5 && !(destination.Elements.Items[4] is PdfNull))
+                        {
+                            Zoom = destination.Elements.GetReal(4);
+                        }
+                        else
+                        {
+                            Zoom = 0.0;
+                        }
                         break;
 
                     // [page /Fit]
@@ -432,12 +472,26 @@ namespace PdfSharp.Pdf
 
                     // [page /FitH top]
                     case PdfPageDestinationType.FitH:
-                        Top = destination.Elements.GetReal(2);
+                        if (destination.Elements.Count >= 3 && !(destination.Elements.Items[2] is PdfNull))
+                        {
+                            Top = destination.Elements.GetReal(2);
+                        }
+                        else
+                        {
+                            Top = -1.0;
+                        }
                         break;
 
                     // [page /FitV left]
                     case PdfPageDestinationType.FitV:
-                        Left = destination.Elements.GetReal(2);
+                        if (destination.Elements.Count >= 3 && !(destination.Elements.Items[2] is PdfNull))
+                        {
+                            Left = destination.Elements.GetReal(2);
+                        }
+                        else
+                        {
+                            Left = -1.0;
+                        }
                         break;
 
                     // [page /FitR left bottom right top]
@@ -455,12 +509,26 @@ namespace PdfSharp.Pdf
 
                     // [page /FitBH top]
                     case PdfPageDestinationType.FitBH:
-                        Top = destination.Elements.GetReal(2);
+                        if (destination.Elements.Count >= 3 && !(destination.Elements.Items[2] is PdfNull))
+                        {
+                            Top = destination.Elements.GetReal(2);
+                        }
+                        else
+                        {
+                            Top = -1.0;
+                        }
                         break;
 
                     // [page /FitBV left]
                     case PdfPageDestinationType.FitBV:
-                        Left = destination.Elements.GetReal(2);
+                        if (destination.Elements.Count >= 3 && !(destination.Elements.Items[2] is PdfNull))
+                        {
+                            Left = destination.Elements.GetReal(2);
+                        }
+                        else
+                        {
+                            Left = -1.0;
+                        }
                         break;
 
                     default:

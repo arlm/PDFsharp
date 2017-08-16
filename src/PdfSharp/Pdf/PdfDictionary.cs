@@ -867,7 +867,11 @@ namespace PdfSharp.Pdf
 #endif
                             if (options == VCF.CreateIndirect)
                             {
-                                _ownerDictionary.Owner._irefTable.Add(obj);
+                                if (!_ownerDictionary.Owner._irefTable.Contains(obj.ObjectID))
+                                {
+                                    _ownerDictionary.Owner._irefTable.Add(obj);
+                                }
+
                                 this[key] = obj.Reference;
                             }
                             else
