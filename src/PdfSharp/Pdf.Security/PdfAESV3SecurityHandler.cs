@@ -232,10 +232,12 @@ namespace PdfSharp.Pdf.Security
                     {
                         byte[] bytes = str.EncryptionValue;
                         PrepareAESKey();
-                        int length = DecryptAES(bytes, 0, bytes.Length);
+                        PrepareAESIV(bytes, 0, 16);
+                        byte[] temp = new byte[bytes.Length];
 
-                        byte[] temp = new byte[length];
-                        Array.Copy(bytes, temp, length);
+                        int length = DecryptAES(bytes, 16, bytes.Length - 16, temp);
+
+                        Array.Resize(ref temp, length);
 
                         str.EncryptionValue = temp;
                     }
@@ -307,7 +309,7 @@ namespace PdfSharp.Pdf.Security
                     DecryptArray(value3);
                 }
             }
-            if (dict.Stream != null && dict.ObjectID != _document._trailer.ObjectID)
+            if (dict.Stream != null && dict.ObjectID != _document?._trailer?.ObjectID)
             {
                 PdfObjectStream objStream = dict as PdfObjectStream;
 
@@ -317,10 +319,12 @@ namespace PdfSharp.Pdf.Security
                     if (bytes.Length != 0)
                     {
                         PrepareAESKey();
-                        int length = DecryptAES(bytes, 0, bytes.Length);
+                        PrepareAESIV(bytes, 0, 16);
+                        byte[] temp = new byte[bytes.Length];
 
-                        byte[] temp = new byte[length];
-                        Array.Copy(bytes, temp, length);
+                        int length = DecryptAES(bytes, 16, bytes.Length - 16, temp);
+
+                        Array.Resize(ref temp, length);
 
                         dict.Stream.Value = temp;
                     }
@@ -400,10 +404,12 @@ namespace PdfSharp.Pdf.Security
                 {
                     byte[] bytes = value.EncryptionValue;
                     PrepareAESKey();
-                    int length = DecryptAES(bytes, 0, bytes.Length);
+                    PrepareAESIV(bytes, 0, 16);
+                    byte[] temp = new byte[bytes.Length];
 
-                    byte[] temp = new byte[length];
-                    Array.Copy(bytes, temp, length);
+                    int length = DecryptAES(bytes, 16, bytes.Length - 16, temp);
+
+                    Array.Resize(ref temp, length);
 
                     value.EncryptionValue = temp;
                 }
@@ -439,10 +445,12 @@ namespace PdfSharp.Pdf.Security
             if (bytes != null && bytes.Length != 0)
             {
                 PrepareAESKey();
-                int length = DecryptAES(bytes, 0, bytes.Length);
+                PrepareAESIV(bytes, 0, 16);
+                byte[] temp = new byte[bytes.Length];
 
-                byte[] temp = new byte[length];
-                Array.Copy(bytes, temp, length);
+                int length = DecryptAES(bytes, 16, bytes.Length - 16, temp);
+
+                Array.Resize(ref temp, length);
 
                 return temp;
             }
