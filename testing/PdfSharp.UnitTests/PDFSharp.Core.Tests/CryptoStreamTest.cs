@@ -66,12 +66,7 @@ namespace PDFSharp.Core.Tests
         [Test(Description = "Encrypted Stream")]
         public void EncryptStream_AESV2()
         {
-            Assert.Ignore("not implemented yet");
-
-            byte[] expected = {
-                0x38, 0x3F, 0x40, 0x23, 0x1A, 0x5E, 0x9E, 0x0E, 0x87, 0xC2, 0x75, 0x3A, 0xA5, 0xAA, 0xD6, 0x2C,
-                0xB5, 0x6B, 0x66, 0x7C, 0xFC, 0x3F, 0x19, 0xC4, 0x97, 0x4B, 0x07, 0xF7, 0xCC, 0xB3, 0x45, 0x41
-            };
+            byte[] expected = { 0x38, 0x3F, 0x40, 0x23, 0x1A, 0x5E, 0x9E, 0x0E, 0x87, 0xC2, 0x75, 0x3A, 0xA5, 0xAA, 0xD6, 0x2C, 0xB5, 0x6B, 0x66, 0x7C, 0xFC, 0x3F, 0x19, 0xC4, 0x97, 0x4B, 0x07, 0xF7, 0xCC, 0xB3, 0x45, 0x41 };
             var stream = "q\n/Fm0 Do\nQ\n";
             var objectID = new PdfObjectID(27, 0);
             byte[] iv = { 0x38, 0x3F, 0x40, 0x23, 0x1A, 0x5E, 0x9E, 0x0E, 0x87, 0xC2, 0x75, 0x3A, 0xA5, 0xAA, 0xD6, 0x2C };
@@ -83,11 +78,15 @@ namespace PDFSharp.Core.Tests
             };
 
             aesV2Security.SetHashKey(objectID);
+
+            byte[] expectedKey = { 246, 29, 198, 157, 237, 157, 52, 239, 155, 2, 40, 189, 113, 234, 36, 187 };
+            Assert.AreEqual(expectedKey, aesV2Security._key);
+
             aesV2Security.PrepareAESKey();
             aesV2Security.PrepareAESIV(iv);
 
             var streamBytes = PdfEncoders.RawEncoding.GetBytes(stream);
-            var streamLength = stream.Length % 16 == 0 ? stream.Length : ((stream.Length / 16) + 1) * 16;
+            var streamLength = (streamBytes.Length % 16 == 0 ? streamBytes.Length : (streamBytes.Length / 16) * 16) + 16;
             var bytes = new byte[streamLength];
             var length = aesV2Security.EncryptAES(streamBytes, 0, streamBytes.Length, bytes);
 
@@ -98,13 +97,32 @@ namespace PDFSharp.Core.Tests
             Array.Copy(bytes, 0, result, 16, bytes.Length);
 
             Assert.AreEqual(expected, result);
+
+            result = aesV2Security.EncryptBytes(streamBytes, iv);
+
+            Assert.AreEqual(expected, result);
+
+            var pdfString = new PdfStringObject(stream, PdfStringEncoding.RawEncoding)
+            {
+                Reference = new PdfReference(objectID, 0)
+            };
+
+            aesV2Security.EncryptObject(pdfString, iv);
+            Assert.AreEqual(expected, pdfString.EncryptionValue);
+
+            var pdfDictionary = new PdfDictionary()
+            {
+                Reference = new PdfReference(objectID, 0)
+            };
+            pdfDictionary.CreateStream(streamBytes);
+
+            aesV2Security.EncryptObject(pdfDictionary, iv);
+            Assert.AreEqual(expected, pdfDictionary.Stream.Value);
         }
 
         [Test(Description = "Encrypted Metadata")]
         public void EncryptMetadata_AESV2()
         {
-            Assert.Ignore("not implemented yet");
-
             byte[] stream =
             {
                 60, 63, 120, 112, 97, 99, 107, 101, 116, 32, 98, 101, 103, 105, 110, 61, 34, 239, 187, 191, 34, 32, 105, 100, 61, 34, 87, 53, 77, 48, 77, 112, 67, 101, 104, 105, 72, 122, 114, 101, 83, 122, 78, 84, 99, 122, 107, 99, 57, 100, 34, 63, 62, 10, 60, 120, 58, 120, 109, 112, 109, 101, 116, 97, 32, 120, 109, 108, 110, 115, 58, 120, 61, 34, 97, 100, 111, 98, 101, 58, 110, 115, 58, 109, 101, 116, 97, 47, 34, 32, 120, 58, 120, 109, 112, 116, 107, 61, 34, 65, 100, 111, 98, 101, 32, 88, 77, 80, 32, 67, 111, 114, 101, 32, 52, 46, 50, 46, 49, 45, 99, 48, 52, 49, 32, 53, 50, 46, 51, 52, 50, 57, 57, 54, 44, 32, 50, 48, 48, 56, 47, 48, 53, 47, 48, 55, 45, 50, 49, 58, 51, 55, 58, 49, 57, 32, 32, 32, 32, 32, 32, 32, 32, 34, 62, 10, 32, 32, 32, 60, 114, 100, 102, 58, 82, 68, 70, 32, 120, 109, 108, 110, 115, 58, 114, 100, 102, 61, 34, 104, 116, 116, 112, 58, 47, 47, 119, 119, 119, 46, 119, 51, 46, 111, 114, 103, 47, 49, 57, 57, 57, 47, 48, 50, 47, 50, 50, 45, 114, 100, 102, 45, 115, 121, 110, 116, 97, 120, 45, 110, 115, 35, 34, 62,
@@ -164,7 +182,7 @@ namespace PDFSharp.Core.Tests
             aesV2Security.PrepareAESKey();
             aesV2Security.PrepareAESIV(iv);
 
-            var streamLength = stream.Length % 16 == 0 ? stream.Length : ((stream.Length / 16) + 1) * 16;
+            var streamLength = (stream.Length % 16 == 0 ? stream.Length : (stream.Length / 16) * 16) + 16;
             var bytes = new byte[streamLength];
             var length = aesV2Security.EncryptAES(stream, 0, stream.Length, bytes);
 
@@ -249,7 +267,7 @@ namespace PDFSharp.Core.Tests
         [Test(Description = "Encrypted Object Stream")]
         public void EncryptObjectStream_AESV2()
         {
-            Assert.Ignore("not implemented yet");
+            Assert.Ignore("Creating Object Streams is not implemented");
 
             byte[] expected = { 111, 0, 159, 227, 116, 128, 54, 240, 122, 135, 105, 168, 56, 234, 28, 131, 246, 228, 33, 41, 226, 147, 163, 196, 139, 224, 40, 230, 33, 64, 35, 4 };
             var stream = "q\n/Fm0 Do\nQ\n";
@@ -394,27 +412,27 @@ namespace PDFSharp.Core.Tests
         [Test(Description = "Encrypted Stream")]
         public void EncryptStream_AESV3_R5()
         {
-            Assert.Ignore("not implemented yet");
-
             byte[] expected = { 213, 169, 92, 74, 46, 169, 17, 58, 232, 71, 8, 123, 141, 139, 133, 51, 127, 253, 107, 51, 236, 6, 100, 171, 45, 171, 210, 152, 87, 215, 195, 141 };
             var stream = "q\n/Fm0 Do\nQ\n";
             var objectID = new PdfObjectID(27, 0);
             byte[] iv = { 213, 169, 92, 74, 46, 169, 17, 58, 232, 71, 8, 123, 141, 139, 133, 51 };
             byte[] key = { 47, 252, 184, 36, 239, 172, 37, 123, 178, 98, 108, 64, 126, 57, 154, 82, 125, 221, 164, 106, 117, 75, 93, 115, 80, 147, 111, 107, 148, 164, 171, 67 };
 
-            var aesV2Security = new PdfAESV3SecurityHandler(new PdfDictionary())
+            var aesV3Security = new PdfAESV3SecurityHandler(new PdfDictionary())
             {
                 _encryptionKey = key
             };
 
-            aesV2Security.SetHashKey(objectID);
-            aesV2Security.PrepareAESKey();
-            aesV2Security.PrepareAESIV(iv);
+            aesV3Security.SetHashKey(objectID);
+            Assert.AreEqual(key, aesV3Security._key);
+
+            aesV3Security.PrepareAESKey();
+            aesV3Security.PrepareAESIV(iv);
 
             var streamBytes = PdfEncoders.RawEncoding.GetBytes(stream);
-            var streamLength = stream.Length % 16 == 0 ? stream.Length : ((stream.Length / 16) + 1) * 16;
+            var streamLength = (streamBytes.Length % 16 == 0 ? streamBytes.Length : (streamBytes.Length / 16) * 16) + 16;
             var bytes = new byte[streamLength];
-            var length = aesV2Security.EncryptAES(streamBytes, 0, streamBytes.Length, bytes);
+            var length = aesV3Security.EncryptAES(streamBytes, 0, streamBytes.Length, bytes);
 
             Assert.AreEqual(streamLength, length);
 
@@ -423,13 +441,32 @@ namespace PDFSharp.Core.Tests
             Array.Copy(bytes, 0, result, 16, bytes.Length);
 
             Assert.AreEqual(expected, result);
+
+            result = aesV3Security.EncryptBytes(streamBytes, iv);
+
+            Assert.AreEqual(expected, result);
+
+            var pdfString = new PdfStringObject(stream, PdfStringEncoding.RawEncoding)
+            {
+                Reference = new PdfReference(objectID, 0)
+            };
+
+            aesV3Security.EncryptObject(pdfString, iv);
+            Assert.AreEqual(expected, pdfString.EncryptionValue);
+
+            var pdfDictionary = new PdfDictionary()
+            {
+                Reference = new PdfReference(objectID, 0)
+            };
+            pdfDictionary.CreateStream(streamBytes);
+
+            aesV3Security.EncryptObject(pdfDictionary, iv);
+            Assert.AreEqual(expected, pdfDictionary.Stream.Value);
         }
 
         [Test(Description = "Encrypted Metadata")]
         public void EncryptMetadata_AESV3_R5()
         {
-            Assert.Ignore("not implemented yet");
-
             byte[] stream =
             {
                 60, 63, 120, 112, 97, 99, 107, 101, 116, 32, 98, 101, 103, 105, 110, 61, 34, 239, 187, 191, 34, 32, 105, 100, 61, 34, 87, 53, 77, 48, 77, 112, 67, 101, 104, 105, 72, 122, 114, 101, 83, 122, 78, 84, 99, 122, 107, 99, 57, 100, 34, 63, 62, 10, 60, 120, 58, 120, 109, 112, 109, 101, 116, 97, 32, 120, 109, 108, 110, 115, 58, 120, 61, 34, 97, 100, 111, 98, 101, 58, 110, 115, 58, 109, 101, 116, 97, 47, 34, 32, 120, 58, 120, 109, 112, 116, 107, 61, 34, 65, 100, 111, 98, 101, 32, 88, 77, 80, 32, 67, 111, 114, 101, 32, 52, 46, 50, 46, 49, 45, 99, 48, 52, 49, 32, 53, 50, 46, 51, 52, 50, 57, 57, 54, 44, 32, 50, 48, 48, 56, 47, 48, 53, 47, 48, 55, 45, 50, 49, 58, 51, 55, 58, 49, 57, 32, 32, 32, 32, 32, 32, 32, 32, 34, 62, 10, 32, 32, 32, 60, 114, 100, 102, 58, 82, 68, 70, 32, 120, 109, 108, 110, 115, 58, 114, 100, 102, 61, 34, 104, 116, 116, 112, 58, 47, 47, 119, 119, 119, 46, 119, 51, 46, 111, 114, 103, 47, 49, 57, 57, 57, 47, 48, 50, 47, 50, 50, 45, 114, 100, 102, 45, 115, 121, 110, 116, 97, 120, 45, 110, 115, 35, 34, 62,
@@ -489,7 +526,7 @@ namespace PDFSharp.Core.Tests
             aesV2Security.PrepareAESKey();
             aesV2Security.PrepareAESIV(iv);
 
-            var streamLength = stream.Length % 16 == 0 ? stream.Length : ((stream.Length / 16) + 1) * 16;
+            var streamLength = (stream.Length % 16 == 0 ? stream.Length : (stream.Length / 16) * 16) + 16;
             var bytes = new byte[streamLength];
             var length = aesV2Security.EncryptAES(stream, 0, stream.Length, bytes);
 
@@ -572,7 +609,7 @@ namespace PDFSharp.Core.Tests
         [Test(Description = "Encrypted Object Stream")]
         public void EncryptObjectStream_AESV3_R5()
         {
-            Assert.Ignore("not implemented yet");
+            Assert.Ignore("Creating Object Streams is not implemented");
 
             byte[] expected = { 111, 0, 159, 227, 116, 128, 54, 240, 122, 135, 105, 168, 56, 234, 28, 131, 246, 228, 33, 41, 226, 147, 163, 196, 139, 224, 40, 230, 33, 64, 35, 4 };
             var stream = "q\n/Fm0 Do\nQ\n";
@@ -717,8 +754,6 @@ namespace PDFSharp.Core.Tests
         [Test(Description = "Encrypted Stream")]
         public void EncryptStream_AESV3_R6()
         {
-            Assert.Ignore("not implemented yet");
-
             byte[] expected = { 111, 0, 159, 227, 116, 128, 54, 240, 122, 135, 105, 168, 56, 234, 28, 131, 246, 228, 33, 41, 226, 147, 163, 196, 139, 224, 40, 230, 33, 64, 35, 4 };
             var stream = "q\n/Fm0 Do\nQ\n";
             var objectID = new PdfObjectID(27, 0);
@@ -731,11 +766,13 @@ namespace PDFSharp.Core.Tests
             };
 
             aesV3Security.SetHashKey(objectID);
+            Assert.AreEqual(key, aesV3Security._key);
+
             aesV3Security.PrepareAESKey();
             aesV3Security.PrepareAESIV(iv);
 
             var streamBytes = PdfEncoders.RawEncoding.GetBytes(stream);
-            var streamLength = stream.Length % 16 == 0 ? stream.Length : ((stream.Length / 16) + 1) * 16;
+            var streamLength = (streamBytes.Length % 16 == 0 ? streamBytes.Length : (streamBytes.Length / 16) * 16) + 16;
             var bytes = new byte[streamLength];
             var length = aesV3Security.EncryptAES(streamBytes, 0, streamBytes.Length, bytes);
 
@@ -747,15 +784,16 @@ namespace PDFSharp.Core.Tests
 
             Assert.AreEqual(expected, result);
 
-            result = aesV3Security.EncryptBytes(streamBytes);
+            result = aesV3Security.EncryptBytes(streamBytes, iv);
+
             Assert.AreEqual(expected, result);
 
-            var pdfString = new PdfStringObject(PdfEncoders.RawEncoding.GetString(streamBytes), PdfStringEncoding.RawEncoding)
+            var pdfString = new PdfStringObject(stream, PdfStringEncoding.RawEncoding)
             {
                 Reference = new PdfReference(objectID, 0)
             };
 
-            aesV3Security.EncryptObject(pdfString);
+            aesV3Security.EncryptObject(pdfString, iv);
             Assert.AreEqual(expected, pdfString.EncryptionValue);
 
             var pdfDictionary = new PdfDictionary()
@@ -764,15 +802,13 @@ namespace PDFSharp.Core.Tests
             };
             pdfDictionary.CreateStream(streamBytes);
 
-            aesV3Security.EncryptObject(pdfDictionary);
-            Assert.AreEqual(expected, pdfDictionary.Stream.UnfilteredValue);
+            aesV3Security.EncryptObject(pdfDictionary, iv);
+            Assert.AreEqual(expected, pdfDictionary.Stream.Value);
         }
 
         [Test(Description = "Encrypted Metadata")]
         public void EncryptMetadata_AESV3_R6()
         {
-            Assert.Ignore("not implemented yet");
-
             byte[] stream =
             {
                 60, 63, 120, 112, 97, 99, 107, 101, 116, 32, 98, 101, 103, 105, 110, 61, 34, 239, 187, 191, 34, 32, 105, 100, 61, 34, 87, 53, 77, 48, 77, 112, 67, 101, 104, 105, 72, 122, 114, 101, 83, 122, 78, 84, 99, 122, 107, 99, 57, 100, 34, 63, 62, 10, 60, 120, 58, 120, 109, 112, 109, 101, 116, 97, 32, 120, 109, 108, 110, 115, 58, 120, 61, 34, 97, 100, 111, 98, 101, 58, 110, 115, 58, 109, 101, 116, 97, 47, 34, 32, 120, 58, 120, 109, 112, 116, 107, 61, 34, 65, 100, 111, 98, 101, 32, 88, 77, 80, 32, 67, 111, 114, 101, 32, 53, 46, 54, 45, 99, 48, 49, 53, 32, 56, 52, 46, 49, 53, 57, 56, 49, 48, 44, 32, 50, 48, 49, 54, 47, 48, 57, 47, 49, 48, 45, 48, 50, 58, 52, 49, 58, 51, 48, 32, 32, 32, 32, 32, 32, 32, 32, 34, 62, 10, 32, 32, 32, 60, 114, 100, 102, 58, 82, 68, 70, 32, 120, 109, 108, 110, 115, 58, 114, 100, 102, 61, 34, 104, 116, 116, 112, 58, 47, 47, 119, 119, 119, 46, 119, 51, 46, 111, 114, 103, 47, 49, 57, 57, 57, 47, 48, 50, 47, 50, 50, 45, 114, 100, 102, 45, 115, 121, 110, 116, 97, 120, 45, 110, 115, 35, 34, 62,
@@ -830,7 +866,7 @@ namespace PDFSharp.Core.Tests
             aesV3Security.PrepareAESKey();
             aesV3Security.PrepareAESIV(iv);
 
-            var streamLength = stream.Length % 16 == 0 ? stream.Length + 16 : ((stream.Length / 16) + 1) * 16;
+            var streamLength = (stream.Length % 16 == 0 ? stream.Length : (stream.Length / 16) * 16) + 16;
             var bytes = new byte[streamLength];
             var length = aesV3Security.EncryptAES(stream, 0, stream.Length, bytes);
 
@@ -912,7 +948,7 @@ namespace PDFSharp.Core.Tests
         [Test(Description = "Encrypted Object Stream")]
         public void EncryptObjectStream_AESV3_R6()
         {
-            Assert.Ignore("not implemented yet");
+            Assert.Ignore("Creating Object Streams is not implemented");
 
             byte[] expected = { 111, 0, 159, 227, 116, 128, 54, 240, 122, 135, 105, 168, 56, 234, 28, 131, 246, 228, 33, 41, 226, 147, 163, 196, 139, 224, 40, 230, 33, 64, 35, 4 };
             var stream = "q\n/Fm0 Do\nQ\n";

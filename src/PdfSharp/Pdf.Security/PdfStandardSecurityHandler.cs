@@ -908,7 +908,8 @@ namespace PdfSharp.Pdf.Security
         public override void PrepareEncryption()
         {
             //#if !SILVERLIGHT
-            Debug.Assert(_document._securitySettings.DocumentSecurityLevel != PdfDocumentSecurityLevel.None);
+            Debug.Assert(_document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.RC4_40bit ||
+                _document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.RC4_128Bit);
             int permissions = (int)Permission;
             bool strongEncryption = _document._securitySettings.DocumentSecurityLevel == PdfDocumentSecurityLevel.RC4_128Bit;
 
@@ -930,11 +931,15 @@ namespace PdfSharp.Pdf.Security
             }
 
             if (string.IsNullOrEmpty(_userPassword))
+            {
                 _userPassword = string.Empty;
+            }
 
             // Use user password twice if no owner password provided.
             if (string.IsNullOrEmpty(_ownerPassword))
+            {
                 _ownerPassword = _userPassword;
+            }
 
             // Correct permission bits
             permissions |= (int)(strongEncryption ? 0xfffff0c0 : 0xffffffc0);

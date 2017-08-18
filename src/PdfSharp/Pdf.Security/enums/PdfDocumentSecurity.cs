@@ -56,8 +56,13 @@ namespace PdfSharp.Pdf.Security
         AES_V2,
 
         /// <summary>
-        /// Document is protected with AES 256-bit security.
+        /// Document is protected with AES 256-bit security (PDF 1.7 Algorithm).
         /// </summary>
-        AES_V3
+        AES_V3_R5,
+
+        /// <summary>
+        /// Document is protected with AES 256-bit security (PDF 2.0 Algorithm).
+        /// </summary>
+        AES_V3_R6
     }
 }
