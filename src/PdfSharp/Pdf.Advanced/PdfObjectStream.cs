@@ -56,6 +56,8 @@ namespace PdfSharp.Pdf.Advanced
 #endif
         }
 
+        internal bool _decrypted;
+
         /// <summary>
         /// Initializes a new instance from an existing dictionary. Used for object type transformation.
         /// </summary>
@@ -64,6 +66,13 @@ namespace PdfSharp.Pdf.Advanced
         {
             int n = Elements.GetInteger(Keys.N);
             int first = Elements.GetInteger(Keys.First);
+
+            if (!_decrypted && this._document?._trailer?.SecurityHandler != null)
+            {
+                this._document._trailer.SecurityHandler.SetHashKey(ObjectID);
+                Stream.Value = this._document._trailer.SecurityHandler.DecryptBytes(Stream.Value);
+                _decrypted = true;
+            }
 
             if (Stream.TryUnfilter())
             {

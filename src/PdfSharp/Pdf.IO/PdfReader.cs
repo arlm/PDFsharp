@@ -262,7 +262,7 @@ namespace PdfSharp.Pdf.IO
         /// </summary>
         public static PdfDocument Open(Stream stream, PdfDocumentOpenMode openmode, PdfPasswordProvider passwordProvider)
         {
-            return Open(stream, null, openmode);
+            return Open(stream, null, openmode, passwordProvider);
         }
         /// <summary>
         /// Opens an existing PDF document.
@@ -311,7 +311,7 @@ namespace PdfSharp.Pdf.IO
 
                     encrypt.Reference = xrefEncrypt;
                     xrefEncrypt.Value = encrypt;
-                    PdfStandardSecurityHandler securityHandler = document.SecurityHandler;
+                    PdfSecurityHandler securityHandler = document.SecurityHandler;
                     TryAgain:
                     PasswordValidity validity = securityHandler.ValidatePassword(password);
                     if (validity == PasswordValidity.Invalid)
@@ -325,15 +325,14 @@ namespace PdfSharp.Pdf.IO
                             password = args.Password;
                             goto TryAgain;
                         }
-                        else
-                        {
-                            if (password == null)
-                                throw new PdfReaderException(PSSR.PasswordRequired);
-                            else
-                                throw new PdfReaderException(PSSR.InvalidPassword);
-                        }
+
+                        if (password == null)
+                            throw new PdfReaderException(PSSR.PasswordRequired);
+
+                        throw new PdfReaderException(PSSR.InvalidPassword);
                     }
-                    else if (validity == PasswordValidity.UserPassword && openmode == PdfDocumentOpenMode.Modify)
+
+                    if (validity == PasswordValidity.UserPassword && openmode == PdfDocumentOpenMode.Modify)
                     {
                         if (passwordProvider != null)
                         {
@@ -344,8 +343,8 @@ namespace PdfSharp.Pdf.IO
                             password = args.Password;
                             goto TryAgain;
                         }
-                        else
-                            throw new PdfReaderException(PSSR.OwnerPasswordRequired);
+
+                        throw new PdfReaderException(PSSR.OwnerPasswordRequired);
                     }
                 }
                 else
@@ -452,7 +451,7 @@ namespace PdfSharp.Pdf.IO
                 // Encrypt all objects.
                 if (xrefEncrypt != null)
                 {
-                    document.SecurityHandler.EncryptDocument();
+                    document.SecurityHandler.DecryptDocument(xrefEncrypt);
                 }
 
                 // Fix references of trailer values and then objects and irefs are consistent.

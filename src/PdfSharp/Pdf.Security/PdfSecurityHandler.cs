@@ -29,6 +29,9 @@
 
 // ReSharper disable InconsistentNaming
 
+using PdfSharp.Pdf.Advanced;
+using PdfSharp.Pdf.IO;
+
 namespace PdfSharp.Pdf.Security
 {
     /// <summary>
@@ -36,6 +39,8 @@ namespace PdfSharp.Pdf.Security
     /// </summary>
     public abstract class PdfSecurityHandler : PdfDictionary
     {
+        public const string Filter = "/Standard";
+
         internal PdfSecurityHandler(PdfDocument document)
             : base(document)
         { }
@@ -43,6 +48,26 @@ namespace PdfSharp.Pdf.Security
         internal PdfSecurityHandler(PdfDictionary dict)
             : base(dict)
         { }
+
+        public abstract string UserPassword { internal get; set; }
+
+        public abstract string OwnerPassword  { internal get; set; }
+
+        internal abstract PdfUserAccessPermission Permission { get; set; }
+
+        public abstract void PrepareEncryption();
+
+        internal abstract void SetHashKey(PdfObjectID id);
+
+        public abstract PasswordValidity ValidatePassword(string inputPassword);
+
+        public abstract void EncryptDocument();
+
+        public abstract void DecryptDocument(PdfReference xrefEncrypt);
+
+        public abstract byte[] EncryptBytes(byte[] bytes);
+
+        public abstract byte[] DecryptBytes(byte[] bytes);
 
         /// <summary>
         /// Predefined keys of this dictionary.

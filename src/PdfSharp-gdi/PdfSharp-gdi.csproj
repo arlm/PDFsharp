@@ -900,6 +900,9 @@
     <Compile Include="..\PdfSharp\Pdf.Printing\PdfFilePrinter.cs">
       <Link>Pdf.Printing\PdfFilePrinter.cs</Link>
     </Compile>
+    <Compile Include="..\PdfSharp\Pdf.Security\AESManaged.cs">
+      <Link>Pdf.Security\AESManaged.cs</Link>
+    </Compile>
     <Compile Include="..\PdfSharp\Pdf.Security\enums\PdfDocumentSecurity.cs">
       <Link>Pdf.Security\enums\PdfDocumentSecurity.cs</Link>
     </Compile>
@@ -909,6 +912,18 @@
     <Compile Include="..\PdfSharp\Pdf.Security\MD5Managed.cs">
       <Link>Pdf.Security\MD5Managed.cs</Link>
     </Compile>
+    <Compile Include="..\PdfSharp\Pdf.Security\PdfAESV2SecurityHandler.cs">
+      <Link>Pdf.Security\PdfAESV2SecurityHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Pdf.Security\PdfAESV3SecurityHandler.cs">
+      <Link>Pdf.Security\PdfAESV3SecurityHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Pdf.Security\PdfCryptoFilter.cs">
+      <Link>Pdf.Security\PdfCryptoFilter.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Pdf.Security\PdfIdentitySecurityHandler.cs">
+      <Link>Pdf.Security\PdfIdentitySecurityHandler.cs</Link>
+    </Compile>
     <Compile Include="..\PdfSharp\Pdf.Security\PdfSecurityHandler.cs">
       <Link>Pdf.Security\PdfSecurityHandler.cs</Link>
     </Compile>
@@ -917,6 +932,12 @@
     </Compile>
     <Compile Include="..\PdfSharp\Pdf.Security\PdfStandardSecurityHandler.cs">
       <Link>Pdf.Security\PdfStandardSecurityHandler.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Pdf.Security\SHA256Managed.cs">
+      <Link>Pdf.Security\SHA256Managed.cs</Link>
+    </Compile>
+    <Compile Include="..\PdfSharp\Pdf.Security\StringPrep.cs">
+      <Link>Pdf.Security\StringPrep.cs</Link>
     </Compile>
     <Compile Include="..\PdfSharp\Pdf\EntryInfoAttribute.cs">
       <Link>Pdf\EntryInfoAttribute.cs</Link>
