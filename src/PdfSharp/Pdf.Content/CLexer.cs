@@ -138,7 +138,8 @@ namespace PdfSharp.Pdf.Content
 
             ClearToken();
             char ch;
-            while ((ch = AppendAndScanNextChar()) != Chars.LF && ch != Chars.EOF) { }
+            while ((ch = AppendAndScanNextChar()) != Chars.LF && ch != Chars.EOF)
+            { }
             return _symbol = CSymbol.Comment;
         }
 
@@ -172,27 +173,52 @@ namespace PdfSharp.Pdf.Content
                     ScanNextChar();
             }
 
-            // Look for 'EI'.
-            while (_currChar != 'E' || _nextChar != 'I')
+            char thirdChar, fourthChar;
+
+            if (_charIndex >= _content.Length)
             {
-                ScanNextChar();
+                thirdChar = fourthChar = '\x0';
+            }
+            else
+            {
+                thirdChar = (char)_content[_charIndex];
 
-                if ((_charIndex + 3) < _content.Length)
+                if (_charIndex + 1 >= _content.Length)
                 {
-                    byte thirdChar = _content[_charIndex];
-
-                    if (_currChar == 'E' && _nextChar == 'I' &&
-                        thirdChar != ' ' && thirdChar != '\n' && thirdChar != '\r')
-                    {
-                        ScanNextChar();
-                    }
+                    fourthChar = '\x0';
                 }
                 else
                 {
-                    break;
+                    fourthChar = (char)_content[_charIndex + 1];
                 }
             }
 
+            // Look for 'EI'.
+            while (!(IsWhiteSpace(_currChar) && _nextChar == 'E' && thirdChar == 'I' && IsWhiteSpace(fourthChar)))
+            {
+                ScanNextChar();
+
+                if (_charIndex >= _content.Length)
+                {
+                    break;
+                }
+
+                thirdChar = (char)_content[_charIndex];
+
+                if (_charIndex + 1 >= _content.Length)
+                {
+                    break;
+                }
+
+                fourthChar = (char)_content[_charIndex + 1];
+            }
+
+            if (IsWhiteSpace(_currChar) && _nextChar == 'E' && thirdChar == 'I')
+            {
+                ScanNextChar();
+                ScanNextChar();
+                ScanNextChar();
+            }
 
             // We currently do nothing with inline images.
             return CSymbol.None;
