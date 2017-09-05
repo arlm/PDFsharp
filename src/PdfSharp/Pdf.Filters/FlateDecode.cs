@@ -157,8 +157,13 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes the specified data.
         /// </summary>
-        public override byte[] Decode(byte[] data, FilterParms parms)
+        public override byte[] Decode(byte[] data, FilterParms parms = null)
         {
+            if ((data?.Length ?? 0) == 0)
+            {
+                return data;
+            }
+
             MemoryStream msInput = new MemoryStream(data);
             MemoryStream msOutput = new MemoryStream();
 #if NET_ZIP

@@ -88,18 +88,15 @@ namespace PdfSharp.Pdf.Filters
                 //  if (JPXDecode == null)
                 //    JPXDecode = new JPXDecode();
                 //  return JPXDecode;
-                //
-                //case "Crypt":
-                //  if (Crypt == null)
-                //    Crypt = new Crypt();
-                //  return Crypt;
+
+                case "Crypt":
+                    return _cryptDecode ?? (_cryptDecode = new CryptDecode());
 
                 case "RunLengthDecode":
                 case "CCITTFaxDecode":
                 case "JBIG2Decode":
                 case "DCTDecode":
                 case "JPXDecode":
-                case "Crypt":
                     Debug.WriteLine("Filter not implemented: " + filterName);
                     return null;
             }
@@ -144,12 +141,20 @@ namespace PdfSharp.Pdf.Filters
         }
         static FlateDecode _flateDecode;
 
+        /// <summary>
+        /// Gets the filter singleton.
+        /// </summary>
+        public static CryptDecode CryptDecode
+        {
+            get { return _cryptDecode ?? (_cryptDecode = new CryptDecode()); }
+        }
+        static CryptDecode _cryptDecode;
+
         //runLengthDecode
         //ccittFaxDecode
         //jbig2Decode
         //dctDecode
         //jpxDecode
-        //crypt
 
         /// <summary>
         /// Encodes the data with the specified filter.
@@ -176,7 +181,7 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes the data with the specified filter.
         /// </summary>
-        public static byte[] Decode(byte[] data, string filterName, FilterParms parms)
+        public static byte[] Decode(byte[] data, string filterName, FilterParms parms = null)
         {
             Filter filter = GetFilter(filterName);
             if (filter != null)
@@ -187,31 +192,20 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes the data with the specified filter.
         /// </summary>
-        public static byte[] Decode(byte[] data, string filterName)
-        {
-            Filter filter = GetFilter(filterName);
-            if (filter != null)
-                return filter.Decode(data, null);
-            return null;
-        }
-
-        /// <summary>
-        /// Decodes the data with the specified filter.
-        /// </summary>
-        public static byte[] Decode(byte[] data, PdfItem filterItem)
+        public static byte[] Decode(byte[] data, PdfItem filterItem, FilterParms parms = null)
         {
             byte[] result = null;
             if (filterItem is PdfName)
             {
                 Filter filter = GetFilter(filterItem.ToString());
                 if (filter != null)
-                    result = filter.Decode(data);
+                    result = filter.Decode(data, parms);
             }
             else if (filterItem is PdfArray)
             {
                 PdfArray array = (PdfArray)filterItem;
                 foreach (PdfItem item in array)
-                    data = Decode(data, item);
+                    data = Decode(data, item, parms);
                 result = data;
             }
             return result;
@@ -220,22 +214,11 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes to a raw string with the specified filter.
         /// </summary>
-        public static string DecodeToString(byte[] data, string filterName, FilterParms parms)
+        public static string DecodeToString(byte[] data, string filterName, FilterParms parms = null)
         {
             Filter filter = GetFilter(filterName);
             if (filter != null)
                 return filter.DecodeToString(data, parms);
-            return null;
-        }
-
-        /// <summary>
-        /// Decodes to a raw string with the specified filter.
-        /// </summary>
-        public static string DecodeToString(byte[] data, string filterName)
-        {
-            Filter filter = GetFilter(filterName);
-            if (filter != null)
-                return filter.DecodeToString(data, null);
             return null;
         }
     }

@@ -35,9 +35,15 @@ namespace PdfSharp.Pdf.Filters
     /// <summary>
     /// Reserved for future extension.
     /// </summary>
-    public class FilterParms
+    public class FilterParms : PdfDictionary
     {
-        // not yet used
+        internal FilterParms(PdfDocument document)
+            : base(document)
+        { }
+
+        internal FilterParms(PdfDictionary dict)
+            : base(dict)
+        { }
     }
 
     /// <summary>
@@ -63,15 +69,7 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// When implemented in a derived class decodes the specified data.
         /// </summary>
-        public abstract byte[] Decode(byte[] data, FilterParms parms);
-
-        /// <summary>
-        /// Decodes the specified data.
-        /// </summary>
-        public byte[] Decode(byte[] data)
-        {
-            return Decode(data, null);
-        }
+        public abstract byte[] Decode(byte[] data, FilterParms parms = null);
 
         /// <summary>
         /// Decodes to a raw string.

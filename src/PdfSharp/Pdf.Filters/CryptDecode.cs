@@ -28,33 +28,36 @@
 #endregion
 
 using System;
+using System.IO;
+using PdfSharp.Internal;
+using PdfSharp.Pdf.Security;
+using System.Diagnostics;
 
 namespace PdfSharp.Pdf.Filters
 {
     /// <summary>
-    /// Implements the ASCIIHexDecode filter.
+    /// Implements the FlateDecode filter by wrapping SharpZipLib.
     /// </summary>
-    public class AsciiHexDecode : Filter
+    public class CryptDecode : Filter
     {
-        // Reference: 3.3.1  ASCIIHexDecode Filter / Page 69
+        // Reference: 3.3.3  LZWDecode and FlateDecode Filters / Page 71
 
         /// <summary>
         /// Encodes the specified data.
         /// </summary>
         public override byte[] Encode(byte[] data)
         {
-            if (data == null)
-                throw new ArgumentNullException("data");
+            return Encode(data, new PdfCryptoFilter((PdfDictionary)null));
+        }
 
-            int count = data.Length;
-            byte[] bytes = new byte[2 * count];
-            for (int i = 0, j = 0; i < count; i++)
-            {
-                byte b = data[i];
-                bytes[j++] = (byte)((b >> 4) + ((b >> 4) < 10 ? (byte)'0' : (byte)('A' - 10)));
-                bytes[j++] = (byte)((b & 0xF) + ((b & 0xF) < 10 ? (byte)'0' : (byte)('A' - 10)));
-            }
-            return bytes;
+        /// <summary>
+        /// Encodes the specified data.
+        /// </summary>
+        public byte[] Encode(byte[] data, PdfCryptoFilter encryptionDic)
+        {
+            PdfSecurityHandler handler = new PdfIdentitySecurityHandler(encryptionDic._document);
+
+            return handler.EncryptBytes(data);
         }
 
         /// <summary>
@@ -65,34 +68,29 @@ namespace PdfSharp.Pdf.Filters
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
 
-            data = RemoveWhiteSpace(data);
-            int count = data.Length;
-            // Ignore EOD (end of data) character.
-            // EOD can be anywhere in the stream, but makes sense only at the end of the stream.
-            if (count > 0 && data[count - 1] == '>')
-                --count;
-            if (count % 2 == 1)
+            string type = parms?.Elements.GetName("/Type");
+            string name = parms?.Elements.GetName("/Name");
+            PdfSecurityHandler handler;
+
+            if (parms == null || type != "/CryptFilterDecodeParms" || name == "/Identity")
             {
-                count++;
-                byte[] temp = data;
-                data = new byte[count];
-                temp.CopyTo(data, 0);
+                handler = new PdfIdentitySecurityHandler(parms?._document);
             }
-            count >>= 1;
-            byte[] bytes = new byte[count];
-            for (int i = 0, j = 0; i < count; i++)
+            else if (name == "/AESV2")
             {
-                // Must support 0-9, A-F, a-f - "Any other characters cause an error."
-                byte hi = data[j++];
-                byte lo = data[j++];
-                if (hi >= 'a' && hi <= 'f')
-                    hi -= 32;
-                if (lo >= 'a' && lo <= 'f')
-                    lo -= 32;
-                // TODO Throw on invalid characters. Stop when encountering EOD. Add one more byte if EOD is the lo byte.
-                bytes[i] = (byte)((hi > '9' ? hi - '7'/*'A' + 10*/: hi - '0') * 16 + (lo > '9' ? lo - '7'/*'A' + 10*/: lo - '0'));
+                handler = new PdfAESV2SecurityHandler(parms?._document);
             }
-            return bytes;
+            else if (name == "/AESV3")
+            {
+                handler = new PdfAESV3SecurityHandler(parms?._document);
+            }
+            else
+            {
+                Debug.WriteLine("Crypt Filter not implemented: " + parms);
+                throw new NotImplementedException("Unknown crypt filter: " + parms);
+            }
+
+            return handler.DecryptBytes(data);
         }
     }
 }
