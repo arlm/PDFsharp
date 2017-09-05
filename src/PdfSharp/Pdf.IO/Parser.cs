@@ -243,7 +243,14 @@ namespace PdfSharp.Pdf.IO
                     return pdfObject;
 
                 case Symbol.String:
-                    pdfObject = new PdfStringObject(_document, _lexer.Token);
+                    pdfObject = new PdfStringObject(_document, _lexer.Token) { HexLiteral = false };
+                    pdfObject.SetObjectID(objectNumber, generationNumber);
+                    if (!fromObjecStream)
+                        ReadSymbol(Symbol.EndObj);
+                    return pdfObject;
+
+                case Symbol.UnicodeString:
+                    pdfObject = new PdfStringObject(_document, _lexer.Token) { HexLiteral = false, Encoding = PdfStringEncoding.Unicode };
                     pdfObject.SetObjectID(objectNumber, generationNumber);
                     if (!fromObjecStream)
                         ReadSymbol(Symbol.EndObj);
