@@ -1717,10 +1717,11 @@ namespace PdfSharp.Pdf
                     {
                         PdfItem filter = _ownerDictionary.Elements["/Filter"];
                         PdfName type = _ownerDictionary.Elements["/Type"] as PdfName;
+                        FilterParms decodeParms = _ownerDictionary.Elements["/DecodeParms"] as FilterParms;
 
                         if (filter != null)
                         {
-                            bytes = Filtering.Decode(_value, filter);
+                            bytes = Filtering.Decode(_value, filter, decodeParms);
 
                             if (bytes == null)
                             {

@@ -176,7 +176,7 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes the data with the specified filter.
         /// </summary>
-        public static byte[] Decode(byte[] data, string filterName, FilterParms parms)
+        public static byte[] Decode(byte[] data, string filterName, FilterParms parms = null)
         {
             Filter filter = GetFilter(filterName);
             if (filter != null)
@@ -187,31 +187,20 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes the data with the specified filter.
         /// </summary>
-        public static byte[] Decode(byte[] data, string filterName)
-        {
-            Filter filter = GetFilter(filterName);
-            if (filter != null)
-                return filter.Decode(data, null);
-            return null;
-        }
-
-        /// <summary>
-        /// Decodes the data with the specified filter.
-        /// </summary>
-        public static byte[] Decode(byte[] data, PdfItem filterItem)
+        public static byte[] Decode(byte[] data, PdfItem filterItem, FilterParms parms = null)
         {
             byte[] result = null;
             if (filterItem is PdfName)
             {
                 Filter filter = GetFilter(filterItem.ToString());
                 if (filter != null)
-                    result = filter.Decode(data);
+                    result = filter.Decode(data, parms);
             }
             else if (filterItem is PdfArray)
             {
                 PdfArray array = (PdfArray)filterItem;
                 foreach (PdfItem item in array)
-                    data = Decode(data, item);
+                    data = Decode(data, item, parms);
                 result = data;
             }
             return result;
@@ -220,22 +209,11 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes to a raw string with the specified filter.
         /// </summary>
-        public static string DecodeToString(byte[] data, string filterName, FilterParms parms)
+        public static string DecodeToString(byte[] data, string filterName, FilterParms parms = null)
         {
             Filter filter = GetFilter(filterName);
             if (filter != null)
                 return filter.DecodeToString(data, parms);
-            return null;
-        }
-
-        /// <summary>
-        /// Decodes to a raw string with the specified filter.
-        /// </summary>
-        public static string DecodeToString(byte[] data, string filterName)
-        {
-            Filter filter = GetFilter(filterName);
-            if (filter != null)
-                return filter.DecodeToString(data, null);
             return null;
         }
     }

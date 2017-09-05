@@ -50,7 +50,7 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes the specified data.
         /// </summary>
-        public override byte[] Decode(byte[] data, FilterParms parms)
+        public override byte[] Decode(byte[] data, FilterParms parms = null)
         {
             if (data[0] == 0x00 && data[1] == 0x01)
                 throw new Exception("LZW flavour not supported.");

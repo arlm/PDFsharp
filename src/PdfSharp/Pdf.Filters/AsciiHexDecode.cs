@@ -60,10 +60,10 @@ namespace PdfSharp.Pdf.Filters
         /// <summary>
         /// Decodes the specified data.
         /// </summary>
-        public override byte[] Decode(byte[] data, FilterParms parms)
+        public override byte[] Decode(byte[] data, FilterParms parms = null)
         {
             if (data == null)
-                throw new ArgumentNullException("data");
+                throw new ArgumentNullException(nameof(data));
 
             data = RemoveWhiteSpace(data);
             int count = data.Length;
