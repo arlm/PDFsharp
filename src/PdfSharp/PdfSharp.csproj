@@ -281,6 +281,7 @@
     <Compile Include="Pdf.Filters\AsciiHexDecode.cs" />
     <Compile Include="Pdf.Filters\Filter.cs" />
     <Compile Include="Pdf.Filters\Filtering.cs" />
+    <Compile Include="Pdf.Filters\CryptDecode.cs" />
     <Compile Include="Pdf.Filters\FlateDecode.cs" />
     <Compile Include="Pdf.Filters\LzwDecode.cs" />
     <Compile Include="Pdf.Internal\AnsiEncoding.cs" />

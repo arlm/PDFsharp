@@ -88,18 +88,15 @@ namespace PdfSharp.Pdf.Filters
                 //  if (JPXDecode == null)
                 //    JPXDecode = new JPXDecode();
                 //  return JPXDecode;
-                //
-                //case "Crypt":
-                //  if (Crypt == null)
-                //    Crypt = new Crypt();
-                //  return Crypt;
+
+                case "Crypt":
+                    return _cryptDecode ?? (_cryptDecode = new CryptDecode());
 
                 case "RunLengthDecode":
                 case "CCITTFaxDecode":
                 case "JBIG2Decode":
                 case "DCTDecode":
                 case "JPXDecode":
-                case "Crypt":
                     Debug.WriteLine("Filter not implemented: " + filterName);
                     return null;
             }
@@ -144,12 +141,20 @@ namespace PdfSharp.Pdf.Filters
         }
         static FlateDecode _flateDecode;
 
+        /// <summary>
+        /// Gets the filter singleton.
+        /// </summary>
+        public static CryptDecode CryptDecode
+        {
+            get { return _cryptDecode ?? (_cryptDecode = new CryptDecode()); }
+        }
+        static CryptDecode _cryptDecode;
+
         //runLengthDecode
         //ccittFaxDecode
         //jbig2Decode
         //dctDecode
         //jpxDecode
-        //crypt
 
         /// <summary>
         /// Encodes the data with the specified filter.
