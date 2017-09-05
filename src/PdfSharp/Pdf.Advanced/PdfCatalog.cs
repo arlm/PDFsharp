@@ -273,7 +273,7 @@ namespace PdfSharp.Pdf.Advanced
             /// <summary>
             /// (Optional; PDF 1.2) The document’s name dictionary.
             /// </summary>
-            [KeyInfo("1.2", KeyType.NameTree | KeyType.Optional)]
+            [KeyInfo("1.2", KeyType.Dictionary | KeyType.Optional)]
             public const string Names = "/Names";
 
             /// <summary>
