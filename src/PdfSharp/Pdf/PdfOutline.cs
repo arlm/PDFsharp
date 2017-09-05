@@ -354,90 +354,87 @@ namespace PdfSharp.Pdf
             PdfItem a = Elements.GetValue(Keys.A);
             Debug.Assert(dest == null || a == null, "Either destination or goto action.");
 
-            PdfArray destArray = null;
-            if (dest != null)
-            {
-                if (dest is PdfReference)
-                {
-                    destArray = (dest as PdfReference).Value as PdfArray;
-                }
-                else if (dest is PdfString)
-                {
-                    PdfString name = dest as PdfString;
-
-                    destArray = FindName(name);
-                }
-                if (dest is PdfName)
-                {
-                    PdfName name = dest as PdfName;
-
-                    destArray = FindName(name);
-                }
-                else
-                {
-                    destArray = dest as PdfArray;
-                }
-
-                if (destArray != null)
-                {
-                    SplitDestinationPage(destArray);
-                }
-                else
-                {
-                    Debug.Assert(false, "See what to do when this happened.");
-                }
-            }
-            else if (a != null)
-            {
+            if (a != null) {
+                PdfDictionary action = (dest is PdfReference ? (a as PdfReference).Value : a) as PdfDictionary;
                 // The dictionary should be a GoTo action.
-                PdfDictionary action;
-                if (dest is PdfReference)
-                {
-                    action = (a as PdfReference).Value as PdfDictionary;
-                }
-                else
-                {
-                    action = a as PdfDictionary;
-                }
-
-                if (action != null && action.Elements.GetName(PdfAction.Keys.S) == "/GoTo")
-                {
+                if (action != null && action.Elements.GetName(PdfAction.Keys.S) == "/GoTo") {
                     dest = action.Elements[PdfGoToAction.Keys.D];
-                    destArray = dest as PdfArray;
-                    if (destArray != null)
-                    {
-                        // Replace Action with /Dest entry.
-                        Elements.Remove(Keys.A);
-                        Elements.Add(Keys.Dest, destArray);
-                        SplitDestinationPage(destArray);
-                    }
-                    else
-                    {
-                        throw new Exception("Destination Array expected.");
-                    }
-                }
-                else
-                {
-                    Debug.Assert(false, "See what to do when this happened.");
                 }
             }
-            else
-            {
+            if (dest != null) {
+                PdfArray destArray = null;
+                if (dest is PdfReference) dest = (dest as PdfReference).Value;
+                if (dest is PdfName) {
+                    destArray = resolveNamedDestination((dest as PdfName).Value);
+                } else if (dest is PdfString) {
+                    destArray = resolveNamedDestination((dest as PdfString).Value);
+                } else {
+                    destArray = dest as PdfArray;
+                }
+                if (destArray != null) {
+                    SplitDestinationPage(destArray);
+                } else {
+                    Debug.Assert(false, "See what to do when this happened.");
+                }
+            } else {
                 // Neither destination page nor GoTo action.
             }
 
             InitializeChildren();
         }
 
-        PdfArray FindName(PdfName name)
-        {
-            return null;
+        PdfArray resolveNamedDestination(string name) {
+            PdfItem namedDestItem = null;
+            if (name.StartsWith("/")) name = name.Substring(1);
+            PdfItem namedDestsItem = this._document.Catalog.Elements[PdfCatalog.Keys.Dests];
+            PdfDictionary namedDests = null;
+            if (namedDestsItem != null) {
+                namedDests = (namedDestsItem is PdfReference ? (namedDestsItem as PdfReference).Value : namedDestsItem) as PdfDictionary;
+                namedDestItem = findNameDestination(namedDests, name);
+            }
+            if (namedDestItem == null) {
+                namedDestsItem = this._document.Catalog.Names.Elements[PdfCatalog.Keys.Dests];
+                if (namedDestsItem != null) {
+                    namedDests = (namedDestsItem is PdfReference ? (namedDestsItem as PdfReference).Value : namedDestsItem) as PdfDictionary;
+                    namedDestItem = findNameDestination(namedDests, name);
+                }
+            }
+            if (namedDestItem == null) return null;
+            if (namedDestItem is PdfReference) namedDestItem = (namedDestItem as PdfReference).Value;
+            if (namedDestItem is PdfDictionary) namedDestItem = (namedDestItem as PdfDictionary).Elements["/D"];
+            return namedDestItem as PdfArray;
         }
 
-        PdfArray FindName(PdfString name)
-        {
-            return null;
+        PdfItem findNameDestination(PdfDictionary nameTree, string name) {
+            if (nameTree == null) return null;
+            PdfItem foundDest = null;
+            PdfArray kids = nameTree.Elements["/Kids"] as PdfArray;
+            if (kids != null) {
+                PdfItem kid;
+                for (int i = 0, n = kids.Elements.Count; i < n; i++) {
+                    kid = kids.Elements[i];
+                    if (kid is PdfReference) kid = (kid as PdfReference).Value;
+                    foundDest = findNameDestination(kid as PdfDictionary, name);
+                    if (foundDest != null) return foundDest;
+                }
+            }
+            PdfArray limits = nameTree.Elements["/Limits"] as PdfArray;
+            if (limits != null) {
+                PdfArray names = nameTree.Elements["/Names"] as PdfArray;
+                PdfString namesEntry;
+                for (int i = 0, n = names.Elements.Count; i < n; i += 2) {
+                    if (!(names.Elements[i] is PdfString)) continue;
+                    namesEntry = names.Elements[i] as PdfString;
+                    if (string.Equals(namesEntry.Value, name)) {
+                        return names.Elements[i + 1];
+                    }
+                }
+                return null;
+            }
+            return nameTree.Elements[string.Concat(name)];
         }
+
+
 
         void SplitDestinationPage(PdfArray destination)  // Reference: 8.2 Destination syntax / Page 582
         {
