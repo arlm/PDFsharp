@@ -1732,53 +1732,6 @@ namespace PdfSharp.Pdf
                             return bytes ?? new byte[0];
                         }
 
-                        if (type != null && type.Value == "/Metadata")
-                        {
-                            return PdfEncoders.RawEncoding.GetBytes("«Cannot decode metadata»");
-
-                            if (_ownerDictionary._document.SecurityHandler is PdfAESV2SecurityHandler)
-                            {
-                                PdfAESV2SecurityHandler securityHandler = _ownerDictionary._document.SecurityHandler as PdfAESV2SecurityHandler;
-
-                                if (securityHandler.EncryptMetadata)
-                                {
-                                    bytes = new byte[_value.Length];
-
-                                    byte[] iv = new byte[16];
-                                    Array.Copy(_value, 0, iv, 0, 16);
-
-                                    securityHandler.SetHashKey(_ownerDictionary.ObjectID);
-                                    securityHandler.PrepareAESKey();
-                                    securityHandler.PrepareAESIV(iv);
-                                    securityHandler.DecryptAES(_value, 16, _value.Length - 16, bytes);
-
-                                    return bytes ?? new byte[0];
-                                }
-                            }
-
-                            if (_ownerDictionary._document.SecurityHandler is PdfAESV3SecurityHandler)
-                            {
-                                return PdfEncoders.RawEncoding.GetBytes("«Cannot decode metadata»");
-
-                                PdfAESV3SecurityHandler securityHandler = _ownerDictionary._document.SecurityHandler as PdfAESV3SecurityHandler;
-
-                                if (securityHandler.EncryptMetadata)
-                                {
-                                    bytes = new byte[_value.Length];
-
-                                    byte[] iv = new byte[16];
-                                    Array.Copy(_value, 0, iv, 0, 16);
-
-                                    securityHandler.SetHashKey(_ownerDictionary.ObjectID);
-                                    securityHandler.PrepareAESKey();
-                                    securityHandler.PrepareAESIV(iv);
-                                    securityHandler.DecryptAES(_value, 16, _value.Length - 16, bytes);
-
-                                    return bytes ?? new byte[0];
-                                }
-                            }
-                        }
-
                         bytes = new byte[_value.Length];
                         _value.CopyTo(bytes, 0);
                     }
